@@ -2,16 +2,17 @@
 #define RCP_PACKET_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
     bool syn;
     bool ack;
-    int seq;
-    int dataSize;
+    uint32_t seq;
+    uint32_t dataSize;
     char* data;
 } Packet;
 
-Packet* createPacket(bool syn, bool ack, int seq, int dataSize, char data[]);
+Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, char data[]);
 
 bool isAck(Packet* packet);
 
@@ -19,11 +20,11 @@ bool isSyn(Packet* packet);
 
 bool isSynAck(Packet* packet);
 
-int extractSeq(Packet* packet);
+uint32_t extractSeq(Packet* packet);
 
 char* extractData(Packet* packet);
 
-int extractDataSize(Packet* packet);
+uint32_t extractDataSize(Packet* packet);
 
 bool isData(Packet* packet);
 

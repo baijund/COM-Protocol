@@ -11,7 +11,7 @@ LDFLAGS=
 
 #Common files
 SOURCES=src/rcp_packet.c
-INCLUDES=inc/rcp_packet.h
+INCLUDES=inc/rcp_packet.h inc/config.h
 OBJECTS=$(SOURCES:.c=.o)
 
 #Tests for packet methods

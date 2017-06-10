@@ -1,5 +1,7 @@
+#include "config.h"
 #include "rcp_packet_tests.h"
 #include "rcp_packet.h"
+
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -18,5 +20,7 @@ int main() {
     }
     printf("dataSize is %i\n", extractDataSize(packet));
     printf("seq num is %i\n", extractSeq(packet));
+
+    DEBUG_PRINT("This is a test\n");
     return 0;
 }

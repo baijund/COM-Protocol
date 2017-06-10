@@ -3,15 +3,20 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
-Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, char data[]) {
+Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, char* data) {
     Packet* packet = (Packet *)malloc(sizeof(Packet));
     // copy info into packet
     packet->syn = syn;
     packet->ack = ack;
     packet->seq = seq;
+
+    //Copy data so the user can do whatever with that data.
+    packet->data = malloc(dataSize);
+    memcpy(packet->data, data, dataSize);
+
     packet->dataSize = dataSize;
-    packet->data = data;
     return packet;
 }
 

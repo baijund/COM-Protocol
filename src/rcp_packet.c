@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, char* data) {
+Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const char* data) {
     Packet* packet = (Packet *)malloc(sizeof(Packet));
     // copy info into packet
     packet->syn = syn;
@@ -51,4 +51,10 @@ bool isData(Packet* packet) {
 void destroyPacket(Packet* packet) {
     free(packet->data);
     free(packet);
+}
+
+Queue *packetize(const char *data, uint32_t dataSize, uint32_t dataPerPacket){
+    Queue *q = queue_new();
+
+    return q;
 }

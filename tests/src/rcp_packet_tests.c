@@ -1,4 +1,4 @@
-#include "config.h"
+#include "rcp_config.h"
 #include "rcp_packet_tests.h"
 #include "rcp_packet.h"
 
@@ -22,5 +22,7 @@ int main() {
     printf("seq num is %i\n", extractSeq(packet));
 
     DEBUG_PRINT("This is a test\n");
+
+    destroyPacket(packet);
     return 0;
 }

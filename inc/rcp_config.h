@@ -1,9 +1,11 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef RCP_CONFIG_H
+#define RCP_CONFIG_H
 
 #include <stdlib.h>
 
+#ifndef DEBUG
 #define DEBUG 1 //Set this flag while debugging
+#endif
 
 #if DEBUG
 

@@ -5,5 +5,6 @@
 
 
 void simple_open_bind_close_test();
+void simple_send_packets_test();
 
 #endif

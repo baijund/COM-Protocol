@@ -64,6 +64,9 @@ int32_t rcp_close(int32_t fd){
 
 
 ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
+
+    //Encryption needs to happen here before packet goes out.
+
     ssize_t total = 0;
     //This serialization allows for variable length packets
     ssize_t needToSend = sizeof(Packet)+extractDataSize(packet);
@@ -84,6 +87,8 @@ ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
 
 ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet){
     ssize_t total = 0;
+
+    //Decryption needs to happen here and needs to pass to send packets up.
 
     //Fill in packet struct
     total += recvfrom(rcp_conn->fd, packet, sizeof(Packet), 0, (struct sockaddr *)(&(rcp_conn->dest_addr)), NULL);

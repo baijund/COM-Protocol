@@ -73,6 +73,14 @@ uint32_t extractDataSize(Packet* packet);
  */
 bool isData(Packet* packet);
 
+
+/**
+ * Frees data inside of packet.
+ * Usefil for statically allocated packets.
+ * @param packet packet who's data needs to be freed
+ */
+void destroyPacketData(Packet *packet);
+
 /**
  * Deallocates space for packet and data
  * @param packet

@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const char* data) {
-    Packet* packet = (Packet *)malloc(sizeof(Packet));
+Packet *createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const char* data) {
+    Packet *packet = (Packet *)malloc(sizeof(Packet));
     // copy info into packet
     packet->syn = syn;
     packet->ack = ack;
@@ -20,35 +20,39 @@ Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const 
     return packet;
 }
 
-bool isAck(Packet* packet) {
+bool isAck(Packet *packet) {
     return packet->ack;
 }
 
-bool isSyn(Packet* packet) {
+bool isSyn(Packet *packet) {
     return packet->syn;
 }
 
-bool isSynAck(Packet* packet) {
+bool isSynAck(Packet *packet) {
     return packet->ack && packet->syn;
 }
 
-uint32_t extractSeq(Packet* packet) {
+uint32_t extractSeq(Packet *packet) {
     return packet->seq;
 }
 
-char* extractData(Packet* packet) {
+char* extractData(Packet *packet) {
     return packet->data;
 }
 
-uint32_t extractDataSize(Packet* packet) {
+uint32_t extractDataSize(Packet *packet) {
     return packet->dataSize;
 }
 
-bool isData(Packet* packet) {
+bool isData(Packet *packet) {
     return packet->dataSize > 0;
 }
 
-void destroyPacket(Packet* packet) {
+void destroyPacketData(Packet *packet){
+    free(packet->data);
+}
+
+void destroyPacket(Packet *packet) {
     free(packet->data);
     free(packet);
 }

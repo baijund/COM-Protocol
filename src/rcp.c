@@ -3,24 +3,6 @@
 #include <netdb.h> //For host resolution
 #include "rcp_config.h"
 #include "rcp.h"
-#include "rcp_packet.h"
-
-typedef enum {
-    PKT_NO_ERROR,
-    PKT_SEND_PACKET_ERROR,
-    PKT_RECEIVE_PACKET_ERROR
-} Packet_Error;
-
-/**
- * A sendto call to a UDP socket with preset parameters.
- * @param  rcp_conn rcp_connection struct containing information to update connection
- * @param  packet   packet to be sent
- * @return          Same return value as sendto()
- */
-static ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet);
-
-
-static Packet_Error rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet);
 
 int32_t rcp_socket(rcp_connection *rcp_conn){
     DEBUG_PRINT("Creating UDP socket.\n");
@@ -62,8 +44,10 @@ RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port){
         DEBUG_PRINT("Could not obtain address of %s\n", host);
     	return RCP_HOSTNAME_FAIL;
     }
+    /* put the host's address into the server address structure */
+    memcpy((void *)&destaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
     conn->dest_addr = destaddr;
-    DEBUG_PRINT("Successfully filled in address\n");
+    DEBUG_PRINT("Successfully filled in address for %s\n", host);
     return RCP_NO_ERROR;
 }
 
@@ -79,11 +63,33 @@ int32_t rcp_close(int32_t fd){
 }
 
 
-static ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
-    return sendto(rcp_conn->fd, extractData(packet), extractDataSize(packet), 0,
-     (struct sockaddr *)(&rcp_conn->dest_addr), sizeof(rcp_sockaddr_in));
+ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
+    ssize_t total = 0;
+    //This serialization allows for variable length packets
+    ssize_t needToSend = sizeof(Packet)+extractDataSize(packet);
+    char *buff = malloc(needToSend);
+    //Copy over packet header. Pointer to data is invalid on other end.
+    memcpy(buff, packet, sizeof(Packet));
+    //Now copy over the payload
+    memcpy(buff+sizeof(Packet), packet->data, extractDataSize(packet));
+
+    //Send the data as a single UDP packet
+    total = sendto(rcp_conn->fd, buff, needToSend, 0,
+     (struct sockaddr *)(&(rcp_conn->dest_addr)), sizeof(rcp_sockaddr_in));
+
+    free(buff); //No need for buff anymore
+    return total;
+
 }
 
-static Packet_Error rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet){
-    return PKT_NO_ERROR;
+ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet){
+    ssize_t total = 0;
+
+    //Fill in packet struct
+    total += recvfrom(rcp_conn->fd, packet, sizeof(Packet), 0, (struct sockaddr *)(&(rcp_conn->dest_addr)), NULL);
+    //Make space to hold packet contents
+    ssize_t dataSize = extractDataSize(packet);
+    packet->data = malloc(dataSize);
+    total += recvfrom(rcp_conn->fd, packet->data, dataSize, 0, (struct sockaddr *)(&(rcp_conn->dest_addr)), NULL);
+    return total;
 }

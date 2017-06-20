@@ -45,6 +45,13 @@ typedef struct {
 int32_t rcp_bind(rcp_connection *rcp_conn, int32_t fd, rcp_sockaddr_in *rcp_sock, uint16_t port);
 
 
+/**
+ * Sets up other endpoint information in connection struct
+ * @param  conn rcp_connection struct
+ * @param  host other endpoint in dotted ip notation
+ * @param  port other endpoint port
+ * @return      an RCP_Error depending on error
+ */
 RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port);
 
 /**
@@ -64,5 +71,31 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len);
 int32_t rcp_close(int32_t fd);
 
 
+//These are not static for debugging purposes. User has no need of these functions.
+#include "rcp_packet.h"
+
+typedef enum {
+    PKT_NO_ERROR,
+    PKT_SEND_PACKET_ERROR,
+    PKT_RECEIVE_PACKET_ERROR
+} Packet_Error;
+
+/**
+ * A sendto call to a UDP socket with preset parameters.
+ * Serializes packet data and sends in same call with data adjacent to Packet struct.
+ * @param  rcp_conn rcp_connection struct containing information to update connection
+ * @param  packet   packet to be sent
+ * @return          Same return value as sendto()
+ */
+ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet);
+
+/**
+ * Receive a RCP packet from socket.
+ * Unserializes data into single RCP packet from single UDP packet.
+ * @param  rcp_conn rcp_connection struct
+ * @param  packet   Packet struct to be populated
+ * @return          number of bytes received (including packet struct).
+ */
+ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet);
 
 #endif

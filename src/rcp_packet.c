@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <arpa/inet.h> //For htons and related
+
 Packet *createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const char* data) {
     Packet *packet = (Packet *)malloc(sizeof(Packet));
     // copy info into packet
@@ -18,6 +20,41 @@ Packet *createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const 
 
     packet->dataSize = dataSize;
     return packet;
+}
+
+void *serializePacket(Packet *packet){
+    char *buff = malloc(PACKET_HEAD_SIZE+extractDataSize(packet));
+
+    /*
+    Copy over packet header
+     */
+    buff[0] = packet->syn;
+    buff[1] = packet->ack;
+    uint32_t *seqpos = (uint32_t *)(buff+2);
+    seqpos[0] = htonl(packet->seq);
+    seqpos[1] = htonl(packet->dataSize);
+
+    /*
+    Copy over data after packet header
+     */
+    void *datapos = (void *)(buff+PACKET_HEAD_SIZE);
+    memcpy(datapos, extractData(packet), extractDataSize(packet));
+    return buff;
+}
+
+void deserializePacket(void *serialPacket, Packet *packet){
+    char *buff = (char *)serialPacket;
+    packet->syn = buff[0];
+    packet->ack = buff[1];
+    uint32_t *seqpos = (uint32_t *)(buff+2);
+    packet->seq = ntohl(seqpos[0]);
+    packet->dataSize = ntohl(seqpos[1]);
+    packet->data = malloc(packet->dataSize); //Need space to hold data
+    /*
+    Copy over data after packet header
+     */
+    void *datapos = (void *)(buff+PACKET_HEAD_SIZE);
+    memcpy(packet->data, datapos, extractDataSize(packet));
 }
 
 bool isAck(Packet *packet) {

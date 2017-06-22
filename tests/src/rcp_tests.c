@@ -8,6 +8,8 @@
 
 #define DECORATE DEBUG_PRINT("-------------\n")
 
+#define TEST_STR_1 "This is a test"
+
 int main(int32_t argc, char **argv){
 
     #if !DEBUG
@@ -82,12 +84,16 @@ void simple_send_packets_test(char *otherIP){
     DEBUG_PRINT("Setup destination passed\n");
 
     DEBUG_PRINT("Attempting to send 50 packets\n");
-    char str[] = "This is a test";
-    Packet *packet = createPacket(false, false, 0, strlen(str)+1, str);
     for(int32_t i=0; i<50; i++){
-        assert(rcp_send_packet(&rcp_conn, packet) == (sizeof(Packet)+extractDataSize(packet)));
+        uint32_t contentLength = strlen(TEST_STR_1)+10;
+        char *content = malloc(contentLength); //Can append upto 9 more char
+        sprintf(content, "%s_%d", TEST_STR_1, i);
+        Packet *packet = createPacket(false, false, 0, contentLength, content);
+        free(content); //No need for content after creating packet
+        assert(rcp_send_packet(&rcp_conn, packet) == PACKET_SERIAL_SIZE(packet));
+        DEBUG_PRINT("Sent packet %d of %ld bytes and content %s\n", i, PACKET_SERIAL_SIZE(packet), packet->data);
+        destroyPacket(packet);
     }
-    destroyPacket(packet);
     DEBUG_PRINT("Sent 50 packets\n");
 
     assert(rcp_close(fd)==0);
@@ -108,15 +114,15 @@ void simple_receive_packets_test(char *otherIP){
     DEBUG_PRINT("Attempting destination setup\n");
     assert(setupDest(&rcp_conn, otherIP, GROUND_PORT)==RCP_NO_ERROR);
     DEBUG_PRINT("Setup destination passed\n");
-    // 
-    // DEBUG_PRINT("Attempting to send 50 packets\n");
-    // char str[] = "This is a test";
-    // Packet *packet = createPacket(false, false, 0, strlen(str)+1, str);
-    // for(int32_t i=0; i<50; i++){
-    //     rcp_send_packet(&rcp_conn, packet);
-    // }
-    // destroyPacket(packet);
-    // DEBUG_PRINT("Sent 50 packets\n");
+
+    DEBUG_PRINT("Attempting to receive 50 packets\n");
+    for(int32_t i=0; i<50; i++){
+        Packet packet;
+        rcp_receive_packet(&rcp_conn, &packet);
+        DEBUG_PRINT("Received packet %d with dataSize %d and content %s\n",i,packet.dataSize, packet.data);
+        destroyPacketData(&packet);
+    }
+    DEBUG_PRINT("Received 50 packets\n");
 
     assert(rcp_close(fd)==0);
     DEBUG_PRINT("Close passed\n");

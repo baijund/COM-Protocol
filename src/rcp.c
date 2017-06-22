@@ -4,6 +4,9 @@
 #include "rcp_config.h"
 #include "rcp.h"
 
+#include <errno.h>
+extern errno;
+
 int32_t rcp_socket(rcp_connection *rcp_conn){
     DEBUG_PRINT("Creating UDP socket.\n");
     rcp_conn->fd = (int32_t) socket(AF_INET, SOCK_DGRAM, 0);
@@ -68,16 +71,12 @@ ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
     //Encryption needs to happen here before packet goes out.
 
     ssize_t total = 0;
-    //This serialization allows for variable length packets
-    ssize_t needToSend = sizeof(Packet)+extractDataSize(packet);
-    char *buff = malloc(needToSend);
-    //Copy over packet header. Pointer to data is invalid on other end.
-    memcpy(buff, packet, sizeof(Packet));
-    //Now copy over the payload
-    memcpy(buff+sizeof(Packet), packet->data, extractDataSize(packet));
+
+    //Serialize the packet
+    void *buff = serializePacket(packet);
 
     //Send the data as a single UDP packet
-    total = sendto(rcp_conn->fd, buff, needToSend, 0,
+    total = sendto(rcp_conn->fd, buff, PACKET_SERIAL_SIZE(packet), 0,
      (struct sockaddr *)(&(rcp_conn->dest_addr)), sizeof(rcp_sockaddr_in));
 
     free(buff); //No need for buff anymore
@@ -86,15 +85,39 @@ ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
 }
 
 ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet){
-    ssize_t total = 0;
 
     //Decryption needs to happen here and needs to pass to send packets up.
 
-    //Fill in packet struct
-    total += recvfrom(rcp_conn->fd, packet, sizeof(Packet), 0, (struct sockaddr *)(&(rcp_conn->dest_addr)), NULL);
-    //Make space to hold packet contents
-    ssize_t dataSize = extractDataSize(packet);
-    packet->data = malloc(dataSize);
-    total += recvfrom(rcp_conn->fd, packet->data, dataSize, 0, (struct sockaddr *)(&(rcp_conn->dest_addr)), NULL);
-    return total;
+    struct sockaddr_in remaddr;     /* remote address */
+    socklen_t addrlen = sizeof(remaddr);            /* length of addresses */
+
+    // //Fill in packet struct
+    char buff[PACKET_HEAD_SIZE];
+    ssize_t recret = 0;
+    //Only peek so that the datagram is not discarded.
+    recret = recvfrom(rcp_conn->fd, buff, PACKET_HEAD_SIZE, MSG_PEEK, (struct sockaddr *)&remaddr, &addrlen);
+    if(recret<0){
+        int err = errno;
+        DEBUG_PRINT("errno is %d\n",err);
+        DEBUG_PRINT("recvfrom returned %ld\n", recret);
+        return recret;
+    }
+
+    uint32_t *seqpos = (uint32_t *)(buff+2);
+    packet->dataSize = ntohl(seqpos[1]); //This is the amount of data that is in the packet.
+
+    //Create a buffer long enough to hold the whole packet
+    char *serialPacket = malloc(PACKET_SERIAL_SIZE(packet));
+
+    //Receive no peek
+    recret = recvfrom(rcp_conn->fd, serialPacket, PACKET_SERIAL_SIZE(packet), 0, (struct sockaddr *)&remaddr, &addrlen);
+    if(recret<0){
+        int err = errno;
+        DEBUG_PRINT("errno is %d\n",err);
+        DEBUG_PRINT("recvfrom returned %ld\n", recret);
+        return recret;
+    }
+    deserializePacket(serialPacket, packet);
+
+    return recret;
 }

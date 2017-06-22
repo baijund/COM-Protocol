@@ -83,8 +83,8 @@ void simple_send_packets_test(char *otherIP){
     assert(setupDest(&rcp_conn, otherIP, SPACE_PORT)==RCP_NO_ERROR);
     DEBUG_PRINT("Setup destination passed\n");
 
-    DEBUG_PRINT("Attempting to send 50 packets\n");
-    for(int32_t i=0; i<50; i++){
+    DEBUG_PRINT("Attempting to send %d packets\n", SEND_PACKETS_COUNT_1);
+    for(int32_t i=0; i<SEND_PACKETS_COUNT_1; i++){
         uint32_t contentLength = strlen(TEST_STR_1)+10;
         char *content = calloc(1, contentLength); //Can append upto 9 more char
         sprintf(content, "%s_%d", TEST_STR_1, i);
@@ -94,7 +94,7 @@ void simple_send_packets_test(char *otherIP){
         DEBUG_PRINT("Sent packet %d of %ld bytes and content %s\n", i, PACKET_SERIAL_SIZE(packet), packet->data);
         destroyPacket(packet);
     }
-    DEBUG_PRINT("Sent 50 packets\n");
+    DEBUG_PRINT("Sent %d packets\n", SEND_PACKETS_COUNT_1);
 
     assert(rcp_close(fd)==0);
     DEBUG_PRINT("Close passed\n");
@@ -115,14 +115,14 @@ void simple_receive_packets_test(char *otherIP){
     assert(setupDest(&rcp_conn, otherIP, GROUND_PORT)==RCP_NO_ERROR);
     DEBUG_PRINT("Setup destination passed\n");
 
-    DEBUG_PRINT("Attempting to receive 50 packets\n");
-    for(int32_t i=0; i<50; i++){
+    DEBUG_PRINT("Attempting to receive %d packets\n", SEND_PACKETS_COUNT_1);
+    for(int32_t i=0; i<SEND_PACKETS_COUNT_1; i++){
         Packet packet;
         rcp_receive_packet(&rcp_conn, &packet);
         DEBUG_PRINT("Received packet %d with dataSize %d and content %s\n",i,packet.dataSize, packet.data);
         destroyPacketData(&packet);
     }
-    DEBUG_PRINT("Received 50 packets\n");
+    DEBUG_PRINT("Received %d packets\n", SEND_PACKETS_COUNT_1);
 
     assert(rcp_close(fd)==0);
     DEBUG_PRINT("Close passed\n");

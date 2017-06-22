@@ -86,7 +86,7 @@ void simple_send_packets_test(char *otherIP){
     DEBUG_PRINT("Attempting to send 50 packets\n");
     for(int32_t i=0; i<50; i++){
         uint32_t contentLength = strlen(TEST_STR_1)+10;
-        char *content = malloc(contentLength); //Can append upto 9 more char
+        char *content = calloc(1, contentLength); //Can append upto 9 more char
         sprintf(content, "%s_%d", TEST_STR_1, i);
         Packet *packet = createPacket(false, false, 0, contentLength, content);
         free(content); //No need for content after creating packet

@@ -53,7 +53,15 @@ RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port){
     DEBUG_PRINT("Successfully filled in address for %s\n", host);
     return RCP_NO_ERROR;
 }
-
+//
+// RCP_Error rcp_connect(rcp_connection *rcp_conn){
+//     //Send syn
+//
+//     //First create syn packet
+//     Packet *syn = createPacket(true, false, rcp_conn->seq, 0, NULL);
+//     //Wait for synack
+//     //Send ack
+// }
 
 
 RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len){
@@ -118,6 +126,7 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet){
         return recret;
     }
     deserializePacket(serialPacket, packet);
+    free(serialPacket); //No need for serialized packet when packet is created.
 
     return recret;
 }

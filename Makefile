@@ -12,21 +12,21 @@ CFLAGS= -g -Wall -std=c99 -pedantic	-I	$(COMMONINCPATH)	-I	$(TESTINCPATH)	-c
 LDFLAGS=
 
 #Common files
-SOURCES=src/rcp_packet.c src/rcp_queue.c src/rcp.c
-INCLUDES=inc/rcp_packet.h inc/rcp_config.h inc/rcp_queue.h inc/rcp.h
+SOURCES= src/rcp_packet.c src/rcp_queue.c src/rcp.c
+INCLUDES= inc/rcp_packet.h inc/rcp_config.h inc/rcp_queue.h inc/rcp.h
 OBJECTS=$(SOURCES:.c=.o)
 
 #Tests for packet methods
-PACKETTESTSRC=tests/src/rcp_packet_tests.c
+PACKETTESTSRC= tests/src/rcp_packet_tests.c
 PACKETTESTOBJ=$(PACKETTESTSRC:.c=.o)
-PACKETTESTINC=tests/inc/rcp_packet_tests.h
-PACKETTESTEXECUTABLE=bin/rcp_packet_tests
+PACKETTESTINC= tests/inc/rcp_packet_tests.h
+PACKETTESTEXECUTABLE= bin/rcp_packet_tests
 
 #Tests for RCP
-RCPTESTSRC=tests/src/rcp_tests.c
+RCPTESTSRC= tests/src/rcp_tests.c
 RCPTESTOBJ=$(RCPTESTSRC:.c=.o)
-RCPTESTINC=tests/inc/rcp_tests.h
-RCPTESTEXECUTABLE=bin/rcp_tests
+RCPTESTINC= tests/inc/rcp_tests.h
+RCPTESTEXECUTABLE= bin/rcp_tests
 
 all:	rcp_tests	rcp_packet_tests
 

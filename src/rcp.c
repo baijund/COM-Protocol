@@ -59,7 +59,16 @@ RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port){
 //
 //     //First create syn packet
 //     Packet *syn = createPacket(true, false, rcp_conn->seq, 0, NULL);
+//     rcp_send_packet(rcp_conn, syn); //Send the packet over
+//
 //     //Wait for synack
+//     Packet synack; //To hold the synack
+//     ssize_t rec = rcp_receive_packet(rcp_conn, synack);
+//     if(rec<0){
+//         int32_t err = errno;
+//         DEBUG_PRINT("Some error during receiveing synack\n", err);
+//     }
+//
 //     //Send ack
 // }
 
@@ -105,9 +114,9 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet){
     //Only peek so that the datagram is not discarded.
     recret = recvfrom(rcp_conn->fd, buff, PACKET_HEAD_SIZE, MSG_PEEK, (struct sockaddr *)&remaddr, &addrlen);
     if(recret<0){
-        int err = errno;
-        DEBUG_PRINT("errno is %d\n",err);
-        DEBUG_PRINT("recvfrom returned %ld\n", recret);
+        // int err = errno;
+        // DEBUG_PRINT("errno is %d\n",err);
+        // DEBUG_PRINT("recvfrom returned %ld\n", recret);
         return recret;
     }
 

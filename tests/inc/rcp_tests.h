@@ -3,7 +3,14 @@
 
 #include <stdbool.h>
 
-#define SEND_PACKETS_COUNT_1 100 //Should be no more than 9 digits
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE //This may make usleep work.
+#endif
+
+#include <unistd.h> //For sleeping
+
+
+#define SEND_PACKETS_COUNT_1 500 //Should be no more than 99 digits
 
 void simple_open_bind_close_test(char *otherIP);
 void simple_send_packets_test(char *otherIP);

@@ -15,6 +15,23 @@ typedef enum {
     RCP_GENERIC_ERROR
 } RCP_Error;
 
+typedef enum {
+    RCP_CLOSED,
+    RCP_SYN_SENT,
+    RCP_LISTEN,
+    RCP_RCVD_SYN,
+    RCP_ESTABLISHED
+} RCP_STATE; //Corresponds to state diagram states
+
+typedef enum {
+    RCP_NO_ACTION,
+    RCP_IS_GROUND,
+    RCP_IS_SAT,
+    RCP_RCV_SYN,
+    RCP_RCV_SYNACK,
+    RCP_RCV_ACK
+} RCP_ACTION; //Corresponds to actions in state diagram
+
 /**
  * User should not have to worry about contents of this struct unless to debug.
  */
@@ -24,6 +41,8 @@ typedef struct {
     int32_t ack; //The outbound ack number.
     rcp_sockaddr_in dest_addr; //Information of other end
     rcp_sockaddr_in this_addr; //Information of this end
+    RCP_STATE state; //The state of the connection.
+    bool clientMode; //Determines whether the machine is in client or server mode
 } rcp_connection;
 
 /**
@@ -53,6 +72,13 @@ int32_t rcp_bind(rcp_connection *rcp_conn, int32_t fd, rcp_sockaddr_in *rcp_sock
  * @return      an RCP_Error depending on error
  */
 RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port);
+
+/**
+ * Establishes connection with endpoint specified in rcp_conn
+ * @param  rcp_conn Contains connection information
+ * @return          Type of error if any
+ */
+RCP_Error rcp_connect(rcp_connection *rcp_conn);
 
 /**
  * SImilar to TCP send. Adds data to the send buffer for transmission.

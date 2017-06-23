@@ -5,11 +5,19 @@
 #include "rcp.h"
 
 #include <errno.h>
-extern errno;
+extern int32_t errno;
+
+/**
+ * Transitions to state s.
+ * @param  rcp_conn Connection information
+ * @param  s        RCP_STATE to transiton to
+ */
+// static void transitionState(rcp_connection *rcp_conn, RCP_STATE s1, RCP_STATE s2);
 
 int32_t rcp_socket(rcp_connection *rcp_conn){
     DEBUG_PRINT("Creating UDP socket.\n");
     rcp_conn->fd = (int32_t) socket(AF_INET, SOCK_DGRAM, 0);
+    rcp_conn->state = RCP_CLOSED;
     return rcp_conn->fd;
 }
 
@@ -53,24 +61,30 @@ RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port){
     DEBUG_PRINT("Successfully filled in address for %s\n", host);
     return RCP_NO_ERROR;
 }
-//
-// RCP_Error rcp_connect(rcp_connection *rcp_conn){
-//     //Send syn
-//
-//     //First create syn packet
-//     Packet *syn = createPacket(true, false, rcp_conn->seq, 0, NULL);
-//     rcp_send_packet(rcp_conn, syn); //Send the packet over
-//
-//     //Wait for synack
-//     Packet synack; //To hold the synack
-//     ssize_t rec = rcp_receive_packet(rcp_conn, synack);
-//     if(rec<0){
-//         int32_t err = errno;
-//         DEBUG_PRINT("Some error during receiveing synack\n", err);
-//     }
-//
-//     //Send ack
-// }
+
+RCP_Error rcp_connect(rcp_connection *rcp_conn){
+
+    while(1){
+        //Send syn
+        //First create syn packet
+        Packet *syn = createPacket(true, false, rcp_conn->seq, 0, NULL);
+        rcp_send_packet(rcp_conn, syn); //Send the packet over
+        rcp_conn->state = RCP_SYN_SENT; //Transition to SYN_SENT state
+
+        //Wait for synack
+        Packet synack; //To hold the synack
+        ssize_t rec = rcp_receive_packet(rcp_conn, &synack);
+        if(rec<0){
+            int32_t err = errno;
+            DEBUG_PRINT("Some error during receiving synack: %d\n", err);
+        }
+
+        //Send ack
+        if(isSynAck(&synack)){
+            rcp_conn->state = RCP_ESTABLISHED;
+        }
+    }
+}
 
 
 RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len){
@@ -139,3 +153,29 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet){
 
     return recret;
 }
+
+//
+// static void transitionState(rcp_connection *rcp_conn, RCP_STATE s){
+//
+//     rcp_conn->state = s;
+// }
+//
+// static char *stateToStr(RCP_STATE s){
+//     switch(s){
+//         case RCP_CLOSED:{
+//             return "RCP_CLOSED";
+//         }
+//         case RCP_SYN_SENT:{
+//             return "RCP_SYN_SENT";
+//         }
+//         case RCP_LISTEN:{
+//             return "RCP_LISTEN";
+//         }
+//         case RCP_RCVD_SYN:{
+//             return "RCP_RCVD_SYN";
+//         }
+//         case RCP_ESTABLISHED:{
+//             return "RCP_ESTABLISHED";
+//         }
+//     }
+// }

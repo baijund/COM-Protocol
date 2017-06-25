@@ -5,7 +5,6 @@
 #include "rcp_config.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h> //For struct tv
 
 #define DECORATE DEBUG_PRINT("-------------\n")
 
@@ -13,6 +12,7 @@
 
 static int32_t uDelay = 0;
 
+static bool groundMode;
 int main(int32_t argc, char **argv){
 
     #if !DEBUG
@@ -32,7 +32,7 @@ int main(int32_t argc, char **argv){
     uDelay = atoi(argv[3]);
     DEBUG_PRINT("Delay set to %d MICROSECONDS\n", uDelay);
 
-    bool groundMode = (strcmp(argv[1],"g")==0);
+    groundMode = (strcmp(argv[1],"g")==0);
 
 
     if(groundMode){
@@ -48,14 +48,26 @@ int main(int32_t argc, char **argv){
     DEBUG_PRINT("Testing open, bind, and close...\n");
     simple_open_bind_close_test(otherIP);
     DEBUG_PRINT("Passed test\n");
+
+    #if DO_PACKET_STATS_TEST
     DECORATE;
     if(groundMode){
         DEBUG_PRINT("Testing destination setup and send packets...\n");
         DEBUG_PRINT("Let server test get to this point and hit enter.\n");
         simple_send_packets_test(otherIP);
+        return 0;
     } else {
         DEBUG_PRINT("Testing destination setup and receive packets...\n");
         simple_receive_packets_test(otherIP);
+    }
+    #endif
+
+    DECORATE;
+    DEBUG_PRINT("Testing connect and listen.\n");
+    if(groundMode){
+        simple_connect_test(otherIP);
+    } else {
+        simple_listen_test(otherIP);
     }
 
     DECORATE;
@@ -65,22 +77,27 @@ int main(int32_t argc, char **argv){
 
 void simple_open_bind_close_test(char *otherIP){
 
-    rcp_connection rcp_conn;
+    rcp_connection rcp_conn = rcp_initConnection();
 
     int32_t fd = rcp_socket(&rcp_conn);
     assert(fd>=0);
     DEBUG_PRINT("Create socket passed\n");
 
     rcp_sockaddr_in rcp_addr;
-    assert(rcp_bind(&rcp_conn ,fd, &rcp_addr, GROUND_PORT)==0);
+    if(groundMode){
+        assert(rcp_bind(&rcp_conn ,fd, &rcp_addr, GROUND_PORT)==0);
+    } else {
+        assert(rcp_bind(&rcp_conn ,fd, &rcp_addr, SPACE_PORT)==0);
+    }
     DEBUG_PRINT("Bind passed\n");
 
     assert(rcp_close(fd)==0);
     DEBUG_PRINT("Close passed\n");
 }
 
+#if DO_PACKET_STATS_TEST
 void simple_send_packets_test(char *otherIP){
-    rcp_connection rcp_conn;
+    rcp_connection rcp_conn = rcp_initConnection();
 
     int32_t fd = rcp_socket(&rcp_conn);
     assert(fd>=0);
@@ -113,7 +130,7 @@ void simple_send_packets_test(char *otherIP){
 }
 
 void simple_receive_packets_test(char *otherIP){
-    rcp_connection rcp_conn;
+    rcp_connection rcp_conn = rcp_initConnection();
 
     int32_t fd = rcp_socket(&rcp_conn);
     assert(fd>=0);
@@ -134,8 +151,7 @@ void simple_receive_packets_test(char *otherIP){
         struct timeval tv;
         tv.tv_sec = 1; //Basically the sleep(1) for the forever loop
         tv.tv_usec = 0;
-        setsockopt(rcp_conn.fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
-        int32_t recret = rcp_receive_packet(&rcp_conn, &packet);
+        int32_t recret = rcp_receive_packet(&rcp_conn, &packet, tv);
         if(recret<0){
             //DEBUG_PRINT("Socket timed out.\n");
             continue;
@@ -146,6 +162,52 @@ void simple_receive_packets_test(char *otherIP){
     }
     DECORATE;
     DEBUG_PRINT("Received %d packets\n", count);
+
+    assert(rcp_close(fd)==0);
+    DEBUG_PRINT("Close passed\n");
+}
+#endif
+
+
+void simple_connect_test(char *otherIP){
+    rcp_connection rcp_conn = rcp_initConnection();
+
+    int32_t fd = rcp_socket(&rcp_conn);
+    assert(fd>=0);
+    DEBUG_PRINT("Create socket passed\n");
+
+    DEBUG_PRINT("Attempting destination setup\n");
+    assert(setupDest(&rcp_conn, otherIP, SPACE_PORT)==RCP_NO_ERROR);
+    DEBUG_PRINT("Setup destination passed\n");
+
+    rcp_sockaddr_in rcp_addr;
+    assert(rcp_bind(&rcp_conn ,fd, &rcp_addr, GROUND_PORT)==0);
+    DEBUG_PRINT("Bind passed\n");
+
+    assert(rcp_connect(&rcp_conn)==RCP_NO_ERROR);
+    DEBUG_PRINT("Connect finished\n");
+
+    assert(rcp_close(fd)==0);
+    DEBUG_PRINT("Close passed\n");
+}
+
+void simple_listen_test(char *otherIP){
+    rcp_connection rcp_conn = rcp_initConnection();
+
+    int32_t fd = rcp_socket(&rcp_conn);
+    assert(fd>=0);
+    DEBUG_PRINT("Create socket passed\n");
+
+    DEBUG_PRINT("Attempting destination setup\n");
+    assert(setupDest(&rcp_conn, otherIP, GROUND_PORT)==RCP_NO_ERROR);
+    DEBUG_PRINT("Setup destination passed\n");
+
+    rcp_sockaddr_in rcp_addr;
+    assert(rcp_bind(&rcp_conn ,fd, &rcp_addr, SPACE_PORT)==0);
+    DEBUG_PRINT("Bind passed\n");
+
+    assert(rcp_listen(&rcp_conn)==RCP_NO_ERROR);
+    DEBUG_PRINT("Listen finished\n");
 
     assert(rcp_close(fd)==0);
     DEBUG_PRINT("Close passed\n");

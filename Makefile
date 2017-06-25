@@ -28,7 +28,7 @@ RCPTESTOBJ=$(RCPTESTSRC:.c=.o)
 RCPTESTINC= tests/inc/rcp_tests.h
 RCPTESTEXECUTABLE= bin/rcp_tests
 
-all:	binfolder rcp_tests	rcp_packet_tests
+all:	binfolder clean rcp_tests rcp_packet_tests
 
 binfolder:
 	mkdir -p bin

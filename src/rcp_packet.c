@@ -57,40 +57,42 @@ void deserializePacket(void *serialPacket, Packet *packet){
     memcpy(packet->data, datapos, extractDataSize(packet));
 }
 
-bool isAck(Packet *packet) {
+inline bool isAck(Packet *packet) {
     return packet->ack;
 }
 
-bool isSyn(Packet *packet) {
+inline bool isSyn(Packet *packet) {
     return packet->syn;
 }
 
-bool isSynAck(Packet *packet) {
+inline bool isSynAck(Packet *packet) {
     return packet->ack && packet->syn;
 }
 
-uint32_t extractSeq(Packet *packet) {
+inline uint32_t extractSeq(Packet *packet) {
     return packet->seq;
 }
 
-char* extractData(Packet *packet) {
+inline char* extractData(Packet *packet) {
     return packet->data;
 }
 
-uint32_t extractDataSize(Packet *packet) {
+inline uint32_t extractDataSize(Packet *packet) {
     return packet->dataSize;
 }
 
-bool isData(Packet *packet) {
+inline bool isData(Packet *packet) {
     return packet->dataSize > 0;
 }
 
-void destroyPacketData(Packet *packet){
+inline void destroyPacketData(Packet *packet){
     free(packet->data);
 }
 
 void destroyPacket(Packet *packet) {
-    free(packet->data);
+    if(packet->data != NULL){
+        free(packet->data);
+    }
     free(packet);
 }
 

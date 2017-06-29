@@ -1,3 +1,4 @@
+#include <stdint.h>
 /*
 
 Copyright (c) 2005-2008, Simon Howard
@@ -45,17 +46,39 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 extern "C" {
 #endif
 
-/**
- * A double-ended queue.
- */
-
-typedef struct _Queue Queue;
 
 /**
  * A value stored in a @ref Queue.
  */
 
 typedef void *QueueValue;
+
+/* A double-ended queue */
+
+typedef struct _QueueEntry QueueEntry;
+
+struct _QueueEntry {
+	QueueValue data;
+	QueueEntry *prev;
+	QueueEntry *next;
+};
+
+
+
+struct _Queue {
+	uint32_t size;
+	QueueEntry *head;
+	QueueEntry *tail;
+};
+
+/**
+ * A double-ended queue.
+ */
+
+typedef struct _Queue Queue;
+
+
+
 
 /**
  * A null @ref QueueValue.
@@ -156,9 +179,15 @@ QueueValue queue_peek_tail(Queue *queue);
 
 int queue_is_empty(Queue *queue);
 
+/**
+ * Return the number of entries in the queue
+ * @param  queue The queue
+ * @return       Number of entries in the queue
+ */
+uint32_t get_queue_size(Queue *queue);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* #ifndef ALGORITHM_QUEUE_H */
-

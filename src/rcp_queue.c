@@ -16,32 +16,14 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+
+Modifications:
+-Add size field for queue
  */
 
 #include <stdlib.h>
 
 #include "rcp_queue.h"
-
-/* malloc() / free() testing */
-
-#ifdef ALLOC_TESTING
-#include "alloc-testing.h"
-#endif
-
-/* A double-ended queue */
-
-typedef struct _QueueEntry QueueEntry;
-
-struct _QueueEntry {
-	QueueValue data;
-	QueueEntry *prev;
-	QueueEntry *next;
-};
-
-struct _Queue {
-	QueueEntry *head;
-	QueueEntry *tail;
-};
 
 Queue *queue_new(void)
 {
@@ -55,6 +37,7 @@ Queue *queue_new(void)
 
 	queue->head = NULL;
 	queue->tail = NULL;
+	queue->size = 0;
 
 	return queue;
 }
@@ -110,6 +93,7 @@ int queue_push_head(Queue *queue, QueueValue data)
 		queue->head = new_entry;
 	}
 
+	queue->size++;
 	return 1;
 }
 
@@ -147,6 +131,7 @@ QueueValue queue_pop_head(Queue *queue)
 
 	free(entry);
 
+	queue->size--;
 	return result;
 }
 
@@ -197,6 +182,7 @@ int queue_push_tail(Queue *queue, QueueValue data)
 		queue->tail = new_entry;
 	}
 
+	queue->size++;
 	return 1;
 }
 
@@ -235,6 +221,7 @@ QueueValue queue_pop_tail(Queue *queue)
 
 	free(entry);
 
+	queue->size--;
 	return result;
 }
 
@@ -249,5 +236,9 @@ QueueValue queue_peek_tail(Queue *queue)
 
 int queue_is_empty(Queue *queue)
 {
-	return queue->head == NULL;
+	return queue->size == 0;
+}
+
+uint32_t get_queue_size(Queue *queue){
+	return queue->size;
 }

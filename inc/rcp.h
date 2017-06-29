@@ -2,8 +2,11 @@
 #define RCP_H
 
 #include <sys/socket.h>
-#include <stdint.h>
 #include <netinet/in.h> //for sockaddr_in
+#include <pthread.h>
+#include "rcp_queue.h"
+
+
 
 typedef struct sockaddr_in rcp_sockaddr_in;
 
@@ -23,7 +26,8 @@ typedef enum {
     RCP_SYN_SENT,
     RCP_LISTEN,
     RCP_RCVD_SYN,
-    RCP_ESTABLISHED
+    RCP_ESTABLISHED_SERVER,
+    RCP_ESTABLISHED_CLIENT
 } RCP_STATE; //Corresponds to state diagram states
 
 typedef enum {
@@ -36,6 +40,10 @@ typedef enum {
     RCP_SEND_SYN,
     RCP_SEND_ACK,
     RCP_SEND_SYNACK,
+    RCP_SERV_TO_AND_LESS_PACKS,
+    RCP_RCV_N_PACKS,
+    RCP_NOTHING_TO_SEND,
+    RCP_SOMETHING_TO_SEND,
     RCP_TIMEOUT
 } RCP_ACTION; //Corresponds to actions in state diagram
 
@@ -47,6 +55,7 @@ typedef enum {
 typedef struct {
     struct timeval RCP_RCVD_SYN_TO;
     struct timeval RCP_SYN_SENT_TO;
+    struct timeval RCP_ESTABLISHED_SERVER_TO;
 } rcp_timeouts;
 
 /**
@@ -59,8 +68,23 @@ typedef struct {
     rcp_sockaddr_in dest_addr; //Information of other end
     rcp_sockaddr_in this_addr; //Information of this end
     RCP_STATE state; //The state of the connection.
-    bool clientMode; //Determines whether the machine is in client or server mode
+    bool established; //True if machine has already established a connection.
     rcp_timeouts timeouts; //The timeouts associated with the connection
+    uint32_t serverRetries; //The number of packets that the server should attempt to receive before acking (Should be more than N)
+
+    uint32_t slidingWindowLen; //The length of the sliding window for the connection
+    uint32_t unackedPacketCount; //The number of packets that have not been acked yet (are in the sliding window)
+
+    pthread_t tid; //The thread id of the established daemon
+    bool daemonSpawned; //Indicates if daemon has been spawned for the connection
+
+    pthread_mutex_t sendLock; //This is the lock for the sending
+    Queue *sendBuffer;    //These are the packets that need to be sent.
+
+    pthread_mutex_t receiveLock; //This is the lock for the receiving
+    Queue *receiveBuffer; //These are the packets that have been received
+    uint32_t bytesInRecBuff; //Amount of bytes waiting to be received
+
 } rcp_connection;
 
 
@@ -137,11 +161,11 @@ RCP_Error rcp_connect(rcp_connection *rcp_conn);
 RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len);
 
 /**
- * Closes socket
- * @param  fd File descriptor of socket
+ * Closes connection includeing socket
+ * @param  fd Connection
  * @return    Same return value as standard socket close
  */
-int32_t rcp_close(int32_t fd);
+int32_t rcp_close(rcp_connection *rcp_conn);
 
 
 //These are not static for debugging purposes. User has no need of these functions.

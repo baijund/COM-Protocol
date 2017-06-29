@@ -91,7 +91,7 @@ void simple_open_bind_close_test(char *otherIP){
     }
     DEBUG_PRINT("Bind passed\n");
 
-    assert(rcp_close(fd)==0);
+    assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");
 }
 
@@ -125,7 +125,7 @@ void simple_send_packets_test(char *otherIP){
     }
     DEBUG_PRINT("Sent %d packets\n", SEND_PACKETS_COUNT_1);
 
-    assert(rcp_close(fd)==0);
+    assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");
 }
 
@@ -163,7 +163,7 @@ void simple_receive_packets_test(char *otherIP){
     DECORATE;
     DEBUG_PRINT("Received %d packets\n", count);
 
-    assert(rcp_close(fd)==0);
+    assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");
 }
 #endif
@@ -187,7 +187,7 @@ void simple_connect_test(char *otherIP){
     assert(rcp_connect(&rcp_conn)==RCP_NO_ERROR);
     DEBUG_PRINT("Connect finished\n");
 
-    assert(rcp_close(fd)==0);
+    assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");
 }
 
@@ -209,6 +209,6 @@ void simple_listen_test(char *otherIP){
     assert(rcp_listen(&rcp_conn)==RCP_NO_ERROR);
     DEBUG_PRINT("Listen finished\n");
 
-    assert(rcp_close(fd)==0);
+    assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");
 }

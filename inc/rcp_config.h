@@ -1,6 +1,7 @@
 #ifndef RCP_CONFIG_H
 #define RCP_CONFIG_H
 
+#include <stdint.h> //For portable types
 #include <stdlib.h>
 #include <stdbool.h>
 #include <sys/time.h> //For struct tv
@@ -41,6 +42,12 @@
 
 #define RCP_SYN_SENT_TO_SEC 0
 #define RCP_SYN_SENT_TO_USEC 500e3
+
+#define RCP_ESTABLISHED_SERVER_TO_SEC 0
+#define RCP_ESTABLISHED_SERVER_TO_USEC 1e3 //This should probably be max round trip time
+
+#define RCP_SLIDING_WINDOW_LEN 10
+#define RCP_SERVER_RETRIES RCP_SLIDING_WINDOW_LEN*10
 
 //-----------------------------------------------
 //-----------------------------------------------

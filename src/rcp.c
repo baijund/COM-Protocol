@@ -28,6 +28,16 @@ static uint32_t rcp_uint_min(uint32_t u1, uint32_t u2){
     return u1<u2?u1:u2;
 }
 
+/**
+ * returns max of u1 and u2
+ * @param  u1 [description]
+ * @param  u2 [description]
+ * @return    [description]
+ */
+static uint32_t rcp_uint_max(uint32_t u1, uint32_t u2){
+    return u1>u2?u1:u2;
+}
+
 #if DEBUG
 /**
  * Converts RCP_STATE to string representation
@@ -271,9 +281,15 @@ static void *rcp_establishedDaemon(void *conn){
                     continue; //Assume a timeout
                 }
                 if(isAck(&pack) && extractSeq(&pack)>=rcp_conn->seq){
-                    rcp_conn->seq = extractSeq(&pack);
+                    rcp_conn->seq = rcp_uint_max(extractSeq(&pack),rcp_conn->seq); //The sequence number of the outbound packets starts from the highest acknowledged packet
                 }
-                destroyPacketData(&pack)
+                pthread_mutex_lock(&(rcp_conn->sendLock));
+                while(rcp_conn->sendBuffer->head && rcp_conn->seq>=extractSeq((Packet *)rcp_conn->sendBuffer->head->data)){
+                    Packet *pack = queue_pop_tail(rcp_conn->sendBuffer);
+                    destroyPacket(pack);
+                }
+                pthread_mutex_unlock(&(rcp_conn->sendLock));
+                destroyPacketData(&pack);
             } else {
                 transitionState(rcp_conn, RCP_NOTHING_TO_SEND);
             }
@@ -313,7 +329,7 @@ static void *rcp_establishedDaemon(void *conn){
             if(serverTimeout && (numReceivedPackets<rcp_conn->slidingWindowLen)){
                 transitionState(rcp_conn, RCP_SERV_TO_AND_LESS_PACKS);
             }
-            if(get_queue_size(rcp_conn->queue)){
+            if(get_queue_size(rcp_conn->sendBuffer)){
                 transitionState(rcp_conn, RCP_SOMETHING_TO_SEND);
             }
         }

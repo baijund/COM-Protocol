@@ -31,7 +31,7 @@ typedef struct {
  * @param  data     data
  * @return          a packet
  */
-Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const char *data);
+Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, uint8_t const *data);
 
 /**
  * Serializes a packet into a single buffer

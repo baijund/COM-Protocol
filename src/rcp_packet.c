@@ -7,7 +7,7 @@
 
 #include <arpa/inet.h> //For htons and related
 
-Packet *createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, const char* data) {
+Packet *createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, uint8_t const *data) {
     Packet *packet = (Packet *)malloc(sizeof(Packet));
     // copy info into packet
     packet->syn = syn;

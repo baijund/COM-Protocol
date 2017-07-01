@@ -67,6 +67,7 @@ rcp_connection rcp_initConnection(){
     rcp_conn.serverRetries = RCP_SERVER_RETRIES; //Default value unless programatically changed
     rcp_conn.slidingWindowLen = RCP_SLIDING_WINDOW_LEN; //Default value unless programatically changed
     rcp_conn.daemonSpawned = false;
+    rcp_conn.maxPacketDataSize = RCP_MAX_PACKET_DATA_SIZE;
 
     if(pthread_mutex_init(&(rcp_conn.sendLock), NULL)){
         DEBUG_PRINT("Failed to initialize send mutex.\n");
@@ -255,6 +256,7 @@ static void *rcp_establishedDaemon(void *conn){
 
     rcp_conn->ack = 1; //Expecting a packet with the sequence number of 1
     rcp_conn->seq = 1; //Will send packets starting with the sequence number of 1;
+    rcp_conn->unackedPacketCount = 0; //No packets are waiting on an ack currently
 
     while(rcp_conn->established){
         if(rcp_conn->state == RCP_ESTABLISHED_CLIENT){
@@ -269,14 +271,15 @@ static void *rcp_establishedDaemon(void *conn){
                         DEBUG_PRINT("Entry is NULL!\n");
                     }
                     Packet *pack = entry->data;
-                    pack->seq = rcp_conn->seq+i;
+                    pack->seq = rcp_conn->seq+i+1; //+1 because rcp_conn->seq represents the outbound packets that have been ackd
                     rcp_send_packet(rcp_conn, pack);
                     entry = entry->next;
                 }
                 pthread_mutex_unlock(&rcp_conn->sendLock);
+                DEBUG_PRINT("Sent %d packets\n", ableToSend);
                 Packet pack;
                 //Now wait for an ack
-                int32_t rec = rcp_receive_packet(rcp_conn, &pack, rcp_conn->timeouts.RCP_ESTABLISHED_SERVER_TO);
+                int32_t rec = rcp_receive_packet(rcp_conn, &pack, rcp_conn->timeouts.RCP_ESTABLISHED_SERVER_TO); //Wait at least as long as it takes for the server to acknowledge
                 if(rec<0){
                     continue; //Assume a timeout
                 }
@@ -338,7 +341,24 @@ static void *rcp_establishedDaemon(void *conn){
     return NULL;
 }
 
-RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len){
+
+//TODO
+RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len){
+    //First packetize the buffer
+    while(len != 0){
+        uint32_t amountUsed = rcp_uint_min(rcp_conn->maxPacketDataSize, len);
+        Packet *pack = createPacket(false, false, 0, amountUsed, buf);
+        pthread_mutex_lock(&(rcp_conn->sendLock));
+        queue_push_tail(rcp_conn->sendBuffer, pack);
+        pthread_mutex_unlock(&(rcp_conn->sendLock));
+        len-=amountUsed;
+    }
+    DEBUG_PRINT("%d bytes added to send buffer.\n", len);
+    return RCP_NO_ERROR;
+}
+
+//TODO
+RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, struct timeval const to){
     return RCP_NO_ERROR;
 }
 
@@ -346,7 +366,7 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len){
 int32_t rcp_close(rcp_connection *rcp_conn){
     rcp_conn->established = false;
     if(rcp_conn->daemonSpawned){
-        pthread_join(rcp_conn->tid, NULL);
+        pthread_join(rcp_conn->tid, NULL); //Wait for daemon to die.
     }
     rcp_conn->state = RCP_UNINIT;
     return close(rcp_conn->fd);

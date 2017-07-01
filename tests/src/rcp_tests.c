@@ -114,7 +114,7 @@ void simple_send_packets_test(char *otherIP){
     DEBUG_PRINT("Attempting to send %d packets\n", SEND_PACKETS_COUNT_1);
     for(int32_t i=0; i<SEND_PACKETS_COUNT_1; i++){
         uint32_t contentLength = strlen(TEST_STR_1)+100;
-        char *content = calloc(1, contentLength); //Can append upto 99 more char
+        uint8_t *content = calloc(1, contentLength); //Can append upto 99 more char
         sprintf(content, "%s_%d", TEST_STR_1, i);
         Packet *packet = createPacket(false, false, 0, contentLength, content);
         free(content); //No need for content after creating packet

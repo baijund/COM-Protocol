@@ -13,7 +13,7 @@ int main() {
     return -1;
     #endif
 
-    char data[5] = {'a', 'a', 'a', 'a', 'a'};
+    uint8_t data[5] = {'a', 'a', 'a', 'a', 'a'};
     Packet* packet = createPacket(1, 0, 30, 5, data);
     bool ack = isAck(packet);
     bool syn = isSyn(packet);

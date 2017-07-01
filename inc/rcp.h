@@ -71,6 +71,7 @@ typedef struct {
     bool established; //True if machine has already established a connection.
     rcp_timeouts timeouts; //The timeouts associated with the connection
     uint32_t serverRetries; //The number of packets that the server should attempt to receive before acking (Should be more than N)
+    uint32_t maxPacketDataSize; //The maximum amount of data that can be contained in a single packet (bytes)
 
     uint32_t slidingWindowLen; //The length of the sliding window for the connection
     uint32_t unackedPacketCount; //The number of packets that have not been acked yet (are in the sliding window)
@@ -155,10 +156,20 @@ RCP_Error rcp_connect(rcp_connection *rcp_conn);
  * SImilar to TCP send. Adds data to the send buffer for transmission.
  * @param  rcp_conn The rcp_connection struct associated with the connection
  * @param  buf      The message to be transmitted.
- * @param  len      The length of the message.
- * @return          Send error if one occured.
+ * @param  len      The length of the message in bytes.
+ * @return          Send error if one occurred.
  */
-RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len);
+RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len);
+
+/**
+ * Similar to rcvfrom. Reads bytes from connection. Blocking call.
+ * @param  rcp_conn The connection info
+ * @param  buf      The buffer to place received bytes into
+ * @param  len      How many bytes to read
+ * @param  to       Timeout for the receive call
+ * @return          Receive error if one occurred
+ */
+RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, struct timeval const to);
 
 /**
  * Closes connection includeing socket
@@ -168,7 +179,7 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, const void *buf, size_t len);
 int32_t rcp_close(rcp_connection *rcp_conn);
 
 
-//These are not static for debugging purposes. User has no need of these functions.
+//These are not static for testing purposes. User has no need of these functions.
 #include "rcp_packet.h"
 
 typedef enum {

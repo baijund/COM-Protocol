@@ -4,7 +4,7 @@ COMMONINCPATH=inc/
 TESTINCPATH=tests/inc
 
 #Compile for tyvak on actual build.
-CC=gcc
+CC=arm-linux-gcc -Wall -std=c99 -pedantic
 
 #Optimize when done debugging.
 CFLAGS= -g -Wall -std=c99 -pedantic	-I	$(COMMONINCPATH)	-I	$(TESTINCPATH)	-c

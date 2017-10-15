@@ -1,0 +1,33 @@
+Network Emulation
+
+We will use the network emulator built into the linux kernel in our docker containers to cause random network artifacts, i.e., packet losses, corrupted packets, duplicate packets, packet re-ordering and packet delays. You must run your FTA client and server in separate docker containers as we did for the first assignment. We will run the network emulator on the eth0 interface of either the client or server.
+
+Note that we have added the "--cap-add=NET_ADMIN" to the docker run command so that you are able to issue the commands necessary to do network emulation.
+
+
+------------DONT DO THIS-------------
+Before we do that, you will need to disable checksum validation on all inbound packets to allow any corruption that the network emulator creates to be seen in your application. You will need to run this each time you run each container:
+
+     ethtool -K eth0 rx off
+
+-------------------------------------
+
+More information can be found here on how to create network artifacts using the network emulator:
+
+     http://manpages.ubuntu.com/manpages/trusty/man8/tc-netem.8.html#contenttoc5
+
+For example, if you want to corrupt 10% of the packets you would use:
+
+	tc qdisc add dev eth0 root netem corrupt 10
+
+(Note that corruption might be in your CRP header or data.)
+
+To change the amount of corruption you would use:
+
+	tc qdisc change dev eth0 root netem corrupt 20
+
+And to remove the corruption you would use:
+
+	tc qdisc del dev eth0 root netem corrupt 20
+
+Be sure to use the sample test script in /home/netem in the docker image.

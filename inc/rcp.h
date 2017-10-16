@@ -55,6 +55,9 @@ typedef enum {
 typedef struct {
     struct timeval RCP_RCVD_SYN_TO;
     struct timeval RCP_SYN_SENT_TO;
+    struct timeval RCP_STATE_SYN_SENT_TO;
+    struct timeval RCP_STATE_RCVD_SYN_TO;
+
     struct timeval RCP_ESTABLISHED_SERVER_TO;
 } rcp_timeouts;
 
@@ -85,6 +88,8 @@ typedef struct {
     pthread_mutex_t receiveLock; //This is the lock for the receiving
     Queue *receiveBuffer; //These are the packets that have been received
     uint32_t bytesInRecBuff; //Amount of bytes waiting to be received
+
+    struct timeval stateStartTime; //Time the state was entered. Simply a reference, not necessarily actual time. TODO look into if time wrapping is an issue.
 
 } rcp_connection;
 

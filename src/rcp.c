@@ -605,6 +605,8 @@ static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
                 }
                 default:{
                     INVALID_ACTION(rcp_conn, action);
+                    sendSynAck(rcp_conn);
+                    executedAction = RCP_SEND_SYNACK;
                     break;
                 }
             }

@@ -7,7 +7,7 @@ TESTINCPATH=tests/inc
 CC=gcc
 
 #Optimize when done debugging.
-CFLAGS= -g -Wall -std=c99 -pedantic	-I	$(COMMONINCPATH)	-I	$(TESTINCPATH)	-c
+CFLAGS= -g -Wall -std=c99 -D_BSD_SOURCE  -pedantic	-I	$(COMMONINCPATH)	-I	$(TESTINCPATH)	-c
 
 LDFLAGS=
 

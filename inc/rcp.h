@@ -1,6 +1,8 @@
 #ifndef RCP_H
 #define RCP_H
 
+#include <inttypes.h> //For printing stuff
+
 #include <sys/socket.h>
 #include <netinet/in.h> //for sockaddr_in
 #include <pthread.h>
@@ -90,7 +92,8 @@ typedef struct {
     uint32_t bytesInRecBuff; //Amount of bytes waiting to be received
 
     struct timeval stateStartTime; //Time the state was entered. Simply a reference, not necessarily actual time. TODO look into if time wrapping is an issue.
-
+    struct timeval lastReceivedTime; //The time of the last received packet
+    struct timeval switchTime;
 } rcp_connection;
 
 
@@ -113,6 +116,16 @@ rcp_timeouts rcp_initTimeouts();
  * @param rcp_tos      The desired timeouts
  */
 void rcp_setTimeouts(rcp_connection *rcp_conn, rcp_timeouts rcp_tos);
+
+
+/**
+ * Set the max amount of time it takes to switch between TX to RX or RX to TX
+ * This should be the maximum of switch times of satellite and ground station.
+ * @param us  microseconds
+ * @param sec seconds
+ */
+void rcp_set_switch_time(rcp_connection *rcp_conn, uint32_t us, uint32_t sec);
+
 
 /**
  * Creates a UDP socket with same return values as socket in standard library

@@ -1,6 +1,7 @@
 #include <string.h>
 #include <unistd.h> //For close()
 #include <netdb.h> //For host resolution
+#include <sys/time.h> //For sleeping and timeval arithmetic
 #include "rcp_config.h"
 #include "rcp.h"
 
@@ -69,6 +70,8 @@ rcp_connection rcp_initConnection(){
     rcp_conn.daemonSpawned = false;
     rcp_conn.maxPacketDataSize = RCP_MAX_PACKET_DATA_SIZE;
 
+    rcp_set_switch_time(&rcp_conn, RCP_SWITCH_US, RCP_SWITCH_SEC);
+
     if(pthread_mutex_init(&(rcp_conn.sendLock), NULL)){
         DEBUG_PRINT("Failed to initialize send mutex.\n");
     }
@@ -76,6 +79,11 @@ rcp_connection rcp_initConnection(){
         DEBUG_PRINT("Failed to initialize receive mutex.\n");
     }
     return rcp_conn;
+}
+
+void rcp_set_switch_time(rcp_connection *rcp_conn, uint32_t us, uint32_t sec){
+    rcp_conn->switchTime.tv_usec = us;
+    rcp_conn->switchTime.tv_sec = sec;
 }
 
 rcp_timeouts rcp_initTimeouts(){
@@ -380,6 +388,24 @@ int32_t rcp_close(rcp_connection *rcp_conn){
     return close(rcp_conn->fd);
 }
 
+/**
+ * Returns the amount of time remaining until next send is allowed. This is to account for TX to RX and RX to TX switching delays.
+ * @param  rcp_conn Used to determine when last receive occured. Also used to
+ * @return          [description]
+ */
+static struct timeval timeRemainingToSend(rcp_connection *rcp_conn){
+    struct timeval tv_elapsed; //Will hold the amount of time elapsed since the last received packet
+    struct timeval lastv = rcp_conn->lastReceivedTime;
+    struct timeval currtv;
+    gettimeofday(&currtv, NULL);
+    timersub(&currtv, &lastv, &tv_elapsed);
+
+    struct timeval tv_rem; //Will hold the amount of time remaining.
+
+    timersub(&rcp_conn->switchTime, &tv_elapsed, &tv_rem);
+
+    return tv_rem;
+}
 
 ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
 
@@ -389,6 +415,13 @@ ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
 
     //Serialize the packet
     void *buff = serializePacket(packet);
+
+    //Sleep until a packet can be sent
+    struct timeval tv = timeRemainingToSend(rcp_conn);
+    if(tv.tv_sec>=0){
+        sleep(tv.tv_sec);
+        usleep(tv.tv_usec);
+    }
 
     //Send the data as a single UDP packet
     total = sendto(rcp_conn->fd, buff, PACKET_SERIAL_SIZE(packet), 0,
@@ -429,6 +462,8 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet, struct time
         // DEBUG_PRINT("errno is %d\n",err);
         // DEBUG_PRINT("recvfrom returned %ld\n", recret);
         return recret;
+    } else {
+        gettimeofday(&rcp_conn->lastReceivedTime, NULL);
     }
 
     uint32_t *seqpos = (uint32_t *)(buff+2);
@@ -474,26 +509,22 @@ static void sendAck(rcp_connection *rcp_conn){
 
 #define INVALID_ACTION(rcp_conn, action) DEBUG_PRINT("%s is an invalid action at %s\n", actionToStr(action), stateToStr(rcp_conn->state));
 
-
-static uint8_t withinTime(rcp_connection *rcp_conn, struct timeval timeout){
+/**
+ * Returns true if there is still time remaining to wait in the state. Or else false.
+ * @param  rcp_conn Struct used to check when state was entered.
+ * @param  timeout  Time allowed for state
+ * @return
+ */
+static uint8_t stateWithinTime(rcp_connection *rcp_conn, struct timeval timeout){
     struct timeval start = rcp_conn->stateStartTime;
     struct timeval current;
     gettimeofday(&current, NULL);
-    int64_t secondsElapsed = current.tv_sec - start.tv_sec;
-    int64_t usecElapsed = current.tv_usec - start.tv_usec;
-    DEBUG_PRINT("%ld seconds elapsed. %ld usec elapsed.\n", secondsElapsed, usecElapsed);
-    uint8_t ret;
-    if(secondsElapsed<timeout.tv_sec){
-        ret = 1; //Less seconds have passed than required for timeout.
-    } else if(secondsElapsed == timeout.tv_usec){
-        if(usecElapsed < timeout.tv_usec){
-            ret = 1; //Same number of seconds have passed, but less microseconds than required for timeout.
-        } else {
-            ret = 0; //Same number of seconds have passed, but more microseconds than requried for timeout.
-        }
-    } else {
-        ret = 0; //More number of seconds have passed than required for timeout.
-    }
+
+    struct timeval elapsed;
+    timersub(&current, &start, &elapsed);
+    // DEBUG_PRINT("%ld seconds elapsed. %ld usec elapsed.\n", (int64_t)elapsed.tv_sec, elapsed.tv_usec);
+
+    uint8_t ret = timercmp(&elapsed, &timeout, <);
 
     if(!ret){
         DEBUG_PRINT("State Timeout: Time elapsed is greater than %ld sec and %ld usec\n", timeout.tv_sec, timeout.tv_usec);
@@ -505,7 +536,7 @@ static uint8_t withinTime(rcp_connection *rcp_conn, struct timeval timeout){
 
 static void adjustState(rcp_connection *rcp_conn, RCP_STATE state){
     rcp_conn->state = state;
-    gettimeofday(&(rcp_conn->stateStartTime), NULL); //TODO address assumption that this doesnt error.
+    gettimeofday(&(rcp_conn->stateStartTime), NULL); //TODO address the assumption that this doesnt error.
     DEBUG_PRINT("Entered state %s at %ld seconds, and %ld microseconds.\n", stateToStr(rcp_conn->state), rcp_conn->stateStartTime.tv_sec, rcp_conn->stateStartTime.tv_usec);
 }
 
@@ -550,7 +581,7 @@ static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
                     break;
                 }
                 case RCP_TIMEOUT:{
-                    uint8_t noTimeout = withinTime(rcp_conn, rcp_conn->timeouts.RCP_STATE_SYN_SENT_TO);
+                    uint8_t noTimeout = stateWithinTime(rcp_conn, rcp_conn->timeouts.RCP_STATE_SYN_SENT_TO);
                     if(!noTimeout){
                         //A state timeout occured during connection phase. Go to closed.
                         adjustState(rcp_conn, RCP_CLOSED);
@@ -562,6 +593,8 @@ static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
                 }
                 default:{
                     INVALID_ACTION(rcp_conn, action);
+                    sendSyn(rcp_conn);
+                    executedAction = RCP_SEND_SYN;
                     break;
                 }
             }
@@ -586,8 +619,8 @@ static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
         case RCP_RCVD_SYN:{
             switch(action){
                 case RCP_TIMEOUT:{
-                    uint8_t noTimeout = withinTime(rcp_conn, rcp_conn->timeouts.RCP_STATE_RCVD_SYN_TO);
-                    if(!noTimeout){
+                    uint8_t timeout = !stateWithinTime(rcp_conn, rcp_conn->timeouts.RCP_STATE_RCVD_SYN_TO);
+                    if(timeout){
                         //A state timeout occured during connection phase. Go to closed.
                         adjustState(rcp_conn, RCP_CLOSED);
                     } else {
@@ -598,7 +631,6 @@ static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
                 }
                 case RCP_RCV_ACK:{
                     adjustState(rcp_conn, RCP_ESTABLISHED_SERVER);
-                    // rcp_conn->state = RCP_ESTABLISHED_SERVER;
                     rcp_conn->established = true;
                     executedAction = RCP_NO_ACTION;
                     break;

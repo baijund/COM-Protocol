@@ -70,6 +70,14 @@ int main(int32_t argc, char **argv){
         simple_listen_test(otherIP);
     }
 
+    DEBUG_PRINT("Testing Send and Receive\n");
+    char *simpleBuff = "hello";
+    if(groundMode){
+        simple_send_test(otherIP, (uint8_t *)simpleBuff, strlen(simpleBuff)+1);
+    } else {
+        simple_receive_test(otherIP, (uint8_t *)simpleBuff, strlen(simpleBuff)+1);
+    }
+
     DECORATE;
     DEBUG_PRINT("All RCP tests passed\n");
     return 0;
@@ -208,6 +216,62 @@ void simple_listen_test(char *otherIP){
 
     assert(rcp_listen(&rcp_conn)==RCP_NO_ERROR);
     DEBUG_PRINT("Listen finished\n");
+
+    assert(rcp_close(&rcp_conn)==0);
+    DEBUG_PRINT("Close passed\n");
+}
+
+
+void simple_send_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
+    rcp_connection rcp_conn = rcp_initConnection();
+
+    int32_t fd = rcp_socket(&rcp_conn);
+    assert(fd>=0);
+    DEBUG_PRINT("Create socket passed\n");
+
+    DEBUG_PRINT("Attempting destination setup\n");
+    assert(setupDest(&rcp_conn, otherIP, SPACE_PORT)==RCP_NO_ERROR);
+    DEBUG_PRINT("Setup destination passed\n");
+
+    rcp_sockaddr_in rcp_addr;
+    assert(rcp_bind(&rcp_conn ,fd, &rcp_addr, GROUND_PORT)==0);
+    DEBUG_PRINT("Bind passed\n");
+
+    assert(rcp_connect(&rcp_conn)==RCP_NO_ERROR);
+    DEBUG_PRINT("Connect finished\n");
+
+    char *somestr = "hello";
+    rcp_send(&rcp_conn, (uint8_t *) somestr, strlen(somestr)+1);
+    DEBUG_PRINT("Sent %s\n", somestr);
+    DEBUG_PRINT("Send Finished\n");
+
+    assert(rcp_close(&rcp_conn)==0);
+    DEBUG_PRINT("Close passed\n");
+}
+
+void simple_receive_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
+    rcp_connection rcp_conn = rcp_initConnection();
+
+    int32_t fd = rcp_socket(&rcp_conn);
+    assert(fd>=0);
+    DEBUG_PRINT("Create socket passed\n");
+
+    DEBUG_PRINT("Attempting destination setup\n");
+    assert(setupDest(&rcp_conn, otherIP, GROUND_PORT)==RCP_NO_ERROR);
+    DEBUG_PRINT("Setup destination passed\n");
+
+    rcp_sockaddr_in rcp_addr;
+    assert(rcp_bind(&rcp_conn ,fd, &rcp_addr, SPACE_PORT)==0);
+    DEBUG_PRINT("Bind passed\n");
+
+    assert(rcp_listen(&rcp_conn)==RCP_NO_ERROR);
+    DEBUG_PRINT("Listen finished\n");
+
+    uint8_t *buf = malloc(len);
+    uint32_t bytesRead;
+    struct timeval to;
+    rcp_receive(&rcp_conn, buf, len, &bytesRead, to);
+    DEBUG_PRINT("Receive finished\n");
 
     assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");

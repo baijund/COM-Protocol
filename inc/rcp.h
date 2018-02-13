@@ -67,6 +67,7 @@ typedef struct {
  * User should not have to worry about contents of this struct unless to debug.
  */
 typedef struct {
+    bool isGround; //Flag describing if this machine is the ground station. Used to give priority to ground for talking.
     int32_t fd; //The file descriptor of the associated socket.
     uint32_t seq; //The outbound sequence number.
     uint32_t ack; //The outbound ack number.
@@ -180,14 +181,15 @@ RCP_Error rcp_connect(rcp_connection *rcp_conn);
 RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len);
 
 /**
- * Similar to rcvfrom. Reads bytes from connection. Blocking call.
- * @param  rcp_conn The connection info
- * @param  buf      The buffer to place received bytes into
- * @param  len      How many bytes to read
- * @param  to       Timeout for the receive call
- * @return          Receive error if one occurred
+ * Similar to rcvfrom.  Reads bytes from connection. Blocking call.
+ * @param  rcp_conn     The connection info
+ * @param  buf          The buffer to place received bytes into
+ * @param  len          How many bytes to read
+ * @param  to           Timeout for the receive call
+ * @param  bytesRead    Address of uint32_t. Will be overwritten to number of bytes actually read.
+ * @return              Receive error if one occurred
  */
-RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, struct timeval const to);
+RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, uint32_t *bytesRead, struct timeval const to);
 
 /**
  * Closes connection includeing socket

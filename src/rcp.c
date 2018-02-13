@@ -299,8 +299,14 @@ static void *rcp_establishedDaemon(void *conn){
                 if(rec<0){
                     continue; //Assume a timeout
                 }
-                if(isAck(&pack) && extractSeq(&pack)>=rcp_conn->seq){
+                if(isAck(&pack) && extractSeq(&pack)>rcp_conn->seq){
                     rcp_conn->seq = rcp_uint_max(extractSeq(&pack),rcp_conn->seq); //The sequence number of the outbound packets starts from the highest acknowledged packet
+                } else{
+                    DEBUG_PRINT("Received a non-ack packet while in client mode.\n");
+                    if(!rcp_conn->isGround){
+                        DEBUG_PRINT("This machine is not ground, so giving other machine talking priority.\n");
+                        transitionState(rcp_conn, RCP_NOTHING_TO_SEND);
+                    }
                 }
                 pthread_mutex_lock(&(rcp_conn->sendLock));
                 while(rcp_conn->sendBuffer->head && rcp_conn->seq>=extractSeq((Packet *)rcp_conn->sendBuffer->head->data)){
@@ -365,7 +371,7 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len){
         uint32_t amountUsed = rcp_uint_min(rcp_conn->maxPacketDataSize, len);
         Packet *pack = createPacket(false, false, 0, amountUsed, buf);
         pthread_mutex_lock(&(rcp_conn->sendLock));
-        queue_push_tail(rcp_conn->sendBuffer, pack);
+        queue_push_head(rcp_conn->sendBuffer, pack);
         pthread_mutex_unlock(&(rcp_conn->sendLock));
         len-=amountUsed;
     }
@@ -374,7 +380,27 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len){
 }
 
 //TODO
-RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, struct timeval const to){
+RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, uint32_t *bytesRead, struct timeval const to){
+    *bytesRead = 0;
+    while(*bytesRead != len){
+        pthread_mutex_lock(&rcp_conn->receiveLock);
+        while(rcp_conn->bytesInRecBuff > 0 && *bytesRead != len){
+            Packet *pack = queue_pop_tail(rcp_conn->receiveBuffer); //Now the packet memory is owned by the queue
+            uint32_t packsize = extractDataSize(pack);
+            uint32_t toRead = rcp_uint_min(packsize, toRead);
+            memcpy(buf, pack->data, toRead);
+            if(toRead==packsize){
+                destroyPacket(pack);
+            } else {
+                uint8_t *newPacketData = malloc(packsize - toRead);
+                memcpy(newPacketData, pack->data + toRead, packsize - toRead);
+                queue_push_tail(rcp_conn->receiveBuffer, pack);
+            }
+            rcp_conn->bytesInRecBuff -= toRead;
+            *bytesRead += toRead;
+        }
+        pthread_mutex_unlock(&rcp_conn->receiveLock);
+    }
     return RCP_NO_ERROR;
 }
 
@@ -551,6 +577,7 @@ static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
         case RCP_CLOSED:{
             switch(action){
                 case RCP_IS_GROUND:{
+                    rcp_conn->isGround = true;
                     sendSyn(rcp_conn);
                     adjustState(rcp_conn, RCP_SYN_SENT);
                     // rcp_conn->state = RCP_SYN_SENT;

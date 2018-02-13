@@ -2,6 +2,8 @@
 #define RCP_TESTS_H
 
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE //This may make usleep work.
@@ -23,5 +25,7 @@ void simple_receive_packets_test(char *otherIP);
 
 void simple_connect_test(char *otherIP);
 void simple_listen_test(char *otherIP);
+void simple_send_test(char *otherIP, uint8_t *simpleBuff, uint32_t len);
+void simple_receive_test(char *otherIP, uint8_t *simpleBuff, uint32_t len);
 
 #endif

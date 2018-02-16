@@ -44,39 +44,54 @@ int main(int32_t argc, char **argv){
     char *otherIP = argv[2];
 
 
-    DECORATE;
-    DEBUG_PRINT("Testing open, bind, and close...\n");
-    simple_open_bind_close_test(otherIP);
-    DEBUG_PRINT("Passed test\n");
-
-    #if DO_PACKET_STATS_TEST
-    DECORATE;
-    if(groundMode){
-        DEBUG_PRINT("Testing destination setup and send packets...\n");
-        DEBUG_PRINT("Let server test get to this point and hit enter.\n");
-        simple_send_packets_test(otherIP);
-        return 0;
-    } else {
-        DEBUG_PRINT("Testing destination setup and receive packets...\n");
-        simple_receive_packets_test(otherIP);
-    }
-    #endif
-
-    DECORATE;
-    DEBUG_PRINT("Testing connect and listen.\n");
-    if(groundMode){
-        simple_connect_test(otherIP);
-    } else {
-        simple_listen_test(otherIP);
-    }
-
-    DEBUG_PRINT("Testing Send and Receive\n");
+    // DECORATE;
+    // DEBUG_PRINT("Testing open, bind, and close...\n");
+    // simple_open_bind_close_test(otherIP);
+    // DEBUG_PRINT("Passed test\n");
+    //
+    // #if DO_PACKET_STATS_TEST
+    // DECORATE;
+    // if(groundMode){
+    //     DEBUG_PRINT("Testing destination setup and send packets...\n");
+    //     DEBUG_PRINT("Let server test get to this point and hit enter.\n");
+    //     simple_send_packets_test(otherIP);
+    //     return 0;
+    // } else {
+    //     DEBUG_PRINT("Testing destination setup and receive packets...\n");
+    //     simple_receive_packets_test(otherIP);
+    // }
+    // #endif
+    //
+    // DECORATE;
+    // DEBUG_PRINT("Testing connect and listen.\n");
+    // if(groundMode){
+    //     simple_connect_test(otherIP);
+    // } else {
+    //     simple_listen_test(otherIP);
+    // }
+    //
+    // DECORATE;
+    // DEBUG_PRINT("Simple testing Send and Receive\n");
     char *simpleBuff = "hello";
-    if(groundMode){
-        simple_send_test(otherIP, (uint8_t *)simpleBuff, strlen(simpleBuff)+1);
-    } else {
-        simple_receive_test(otherIP, (uint8_t *)simpleBuff, strlen(simpleBuff)+1);
+    // if(groundMode){
+    //     simple_send_test(otherIP, (uint8_t *)simpleBuff, strlen(simpleBuff)+1);
+    // } else {
+    //     simple_receive_test(otherIP, (uint8_t *)simpleBuff, strlen(simpleBuff)+1);
+    // }
+
+    DECORATE;
+    DEBUG_PRINT("Extensive testing Send and Receive\n");
+    uint32_t buflen = RCP_MAX_PACKET_DATA_SIZE*100; //To send 10 packets
+    simpleBuff = malloc(buflen);
+    for(int i=0;i<buflen;i++){
+        simpleBuff[i] = (char)i;
     }
+    if(groundMode){
+        simple_send_test(otherIP, (uint8_t *)simpleBuff, buflen);
+    } else {
+        simple_receive_test(otherIP, (uint8_t *)simpleBuff, buflen);
+    }
+    free(simpleBuff);
 
     DECORATE;
     DEBUG_PRINT("All RCP tests passed\n");
@@ -195,6 +210,7 @@ void simple_connect_test(char *otherIP){
     assert(rcp_connect(&rcp_conn)==RCP_NO_ERROR);
     DEBUG_PRINT("Connect finished\n");
 
+    DEBUG_PRINT("Attempting to close\n");
     assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");
 }
@@ -240,9 +256,8 @@ void simple_send_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
     assert(rcp_connect(&rcp_conn)==RCP_NO_ERROR);
     DEBUG_PRINT("Connect finished\n");
 
-    char *somestr = "hello";
-    rcp_send(&rcp_conn, (uint8_t *) somestr, strlen(somestr)+1);
-    DEBUG_PRINT("Sent %s\n", somestr);
+    DEBUG_PRINT("Sending %d bytes\n", len);
+    rcp_send(&rcp_conn, simpleBuff, len);
     DEBUG_PRINT("Send Finished\n");
 
     assert(rcp_close(&rcp_conn)==0);
@@ -270,8 +285,13 @@ void simple_receive_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
     uint8_t *buf = malloc(len);
     uint32_t bytesRead;
     struct timeval to;
+    DEBUG_PRINT("Attempting to receive buffer of size %d.\n", len);
     rcp_receive(&rcp_conn, buf, len, &bytesRead, to);
+    assert(bytesRead==len);
     DEBUG_PRINT("Receive finished\n");
+    assert(memcmp(buf, simpleBuff, len)==0);
+    DEBUG_PRINT("Received the correct data.\n");
+    free(buf);
 
     assert(rcp_close(&rcp_conn)==0);
     DEBUG_PRINT("Close passed\n");

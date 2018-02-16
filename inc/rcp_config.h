@@ -44,12 +44,12 @@
 
 
 
-#define RCP_ESTABLISHED_SERVER_TO_SEC 0
+#define RCP_ESTABLISHED_SERVER_TO_SEC 1
 #define RCP_ESTABLISHED_SERVER_TO_USEC 1e3 //This should probably be max round trip time
 
 
 #define RCP_SWITCH_US 0 //TODO Set to whatever the observed best is.
-#define RCP_SWITCH_SEC 5
+#define RCP_SWITCH_SEC 1
 
 #define RCP_SYN_SENT_TO_SEC 2*RCP_SWITCH_SEC
 #define RCP_SYN_SENT_TO_USEC 2*RCP_SWITCH_US
@@ -59,7 +59,7 @@
 #define RCP_STATE_SYN_SENT_TO_USEC 0
 
 #define RCP_SLIDING_WINDOW_LEN 10
-#define RCP_SERVER_RETRIES RCP_SLIDING_WINDOW_LEN*10
+#define RCP_SERVER_RETRIES 3
 
 //-----------------------------------------------
 //-----------------------------------------------

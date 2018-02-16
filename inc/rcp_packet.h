@@ -1,7 +1,6 @@
 #ifndef RCP_PACKET_H
 #define RCP_PACKET_H
 
-#include <stdbool.h>
 #include <stdint.h>
 #include "rcp_queue.h"
 
@@ -9,17 +8,17 @@
 The size of a packet w/o the pointer for transfer.
 The pointer is useless after transfer, so it is not necessary.
 */
-#define PACKET_HEAD_SIZE sizeof(bool)*2+sizeof(uint32_t)*2
+#define PACKET_HEAD_SIZE sizeof(uint8_t)*2+sizeof(uint32_t)*2
 
 
 #define PACKET_SERIAL_SIZE(p_packet) (extractDataSize(p_packet)+PACKET_HEAD_SIZE)
 
 typedef struct {
-    bool syn;
-    bool ack;
+    uint8_t syn;
+    uint8_t ack;
     uint32_t seq;
     uint32_t dataSize;
-    char* data;
+    uint8_t* data;
 } Packet;
 
 /**
@@ -31,7 +30,7 @@ typedef struct {
  * @param  data     data
  * @return          a packet
  */
-Packet* createPacket(bool syn, bool ack, uint32_t seq, uint32_t dataSize, uint8_t const *data);
+Packet* createPacket(uint8_t syn, uint8_t ack, uint32_t seq, uint32_t dataSize, uint8_t const *data);
 
 /**
  * Serializes a packet into a single buffer
@@ -55,21 +54,21 @@ void deserializePacket(void *serialPacket, Packet *packet);
  * @param  packet
  * @return        true/false
  */
-bool isAck(Packet* packet);
+uint8_t isAck(Packet* packet);
 
 /**
  * true iff packet contains a syn
  * @param  packet
  * @return        true/false
  */
-bool isSyn(Packet* packet);
+uint8_t isSyn(Packet* packet);
 
 /**
  * true iff packet contains an ack
  * @param  packet
  * @return        true/false
  */
-bool isSynAck(Packet* packet);
+uint8_t isSynAck(Packet* packet);
 
 /**
  * Gets the sequence number of a packet
@@ -83,7 +82,7 @@ uint32_t extractSeq(Packet* packet);
  * @param  packet
  * @return        data
  */
-char* extractData(Packet* packet);
+uint8_t* extractData(Packet* packet);
 
 /**
  * Gets the size of the data in the packet
@@ -97,7 +96,7 @@ uint32_t extractDataSize(Packet* packet);
  * @param  packet
  * @return        true/false
  */
-bool isData(Packet* packet);
+uint8_t isData(Packet* packet);
 
 
 /**
@@ -120,6 +119,6 @@ void destroyPacket(Packet* packet);
  * @param  dataPerPacket amount of data in each packet in bytes
  * @return               Pointer to queue of packets
  */
-Queue *packetize(const char *data, uint32_t dataSize, uint32_t dataPerPacket);
+Queue *packetize(const uint8_t *data, uint32_t dataSize, uint32_t dataPerPacket);
 
 #endif

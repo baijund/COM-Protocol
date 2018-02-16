@@ -81,10 +81,10 @@ int main(int32_t argc, char **argv){
 
     DECORATE;
     DEBUG_PRINT("Extensive testing Send and Receive\n");
-    uint32_t buflen = RCP_MAX_PACKET_DATA_SIZE*10; //To send 10 packets
+    uint32_t buflen = RCP_MAX_PACKET_DATA_SIZE*3; //To send 10 packets
     simpleBuff = malloc(buflen);
     for(int i=0;i<buflen;i++){
-        simpleBuff[i] = (char)i;
+        simpleBuff[i] = 'A'+(i%26);
     }
     if(groundMode){
         simple_send_test(otherIP, (uint8_t *)simpleBuff, buflen);
@@ -257,6 +257,11 @@ void simple_send_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
     DEBUG_PRINT("Connect finished\n");
 
     DEBUG_PRINT("Sending %d bytes\n", len);
+    // DEBUG_PRINT("Attempting to send:\n");
+    // for(int i=0;i<len;i++){
+    //     DEBUG_PRINT("%c", simpleBuff[i]);
+    // }
+    // DEBUG_PRINT("\n");
     rcp_send(&rcp_conn, simpleBuff, len);
     DEBUG_PRINT("Send Finished\n");
 
@@ -289,6 +294,20 @@ void simple_receive_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
     rcp_receive(&rcp_conn, buf, len, &bytesRead, to);
     assert(bytesRead==len);
     DEBUG_PRINT("Receive finished\n");
+    // DEBUG_PRINT("Should have received:\n");
+    // for(int i=0;i<len;i++){
+    //     DEBUG_PRINT("%c", simpleBuff[i]);
+    // }
+    // DEBUG_PRINT("\n");
+    // DEBUG_PRINT("Received actually:\n");
+    // for(int i=0;i<bytesRead;i++){
+    //     DEBUG_PRINT("%c", buf[i]);
+    // }
+    // DEBUG_PRINT("\nComparison:\n");
+    // for(int i=0;i<bytesRead;i++){
+    //     DEBUG_PRINT("%d", buf[i]==simpleBuff[i]);
+    // }
+    // DEBUG_PRINT("\n");
     assert(memcmp(buf, simpleBuff, len)==0);
     DEBUG_PRINT("Received the correct data.\n");
     free(buf);

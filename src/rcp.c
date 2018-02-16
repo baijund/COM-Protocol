@@ -420,10 +420,17 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len){
     pthread_mutex_lock(&(rcp_conn->sendLock));
     while(templen != 0){
         uint32_t amountUsed = rcp_uint_min(rcp_conn->maxPacketDataSize, templen);
-        DEBUG_PRINT("Adding packet with SEQ#%" PRIu32 " (0x%x) to send queue\n", rcp_conn->seq, rcp_conn->seq);
+        DEBUG_PRINT("Adding packet with SEQ#%" PRIu32 " (0x%x) and size %" PRIu32 " to send queue\n", rcp_conn->seq, rcp_conn->seq, amountUsed);
+
         Packet *pack = createPacket(0, 0, rcp_conn->seq++, amountUsed, buf);
         queue_push_head(rcp_conn->sendBuffer, pack);
+        // DEBUG_PRINT("Packet Contains: \n");
+        // for(int i=0;i<amountUsed;i++){
+        //     printf("%c", pack->data[i]);
+        // }
+        // DEBUG_PRINT("\n");
         templen-=amountUsed;
+        buf+=amountUsed;
     }
     DEBUG_PRINT("%d bytes added to send buffer.\n", len);
     DEBUG_PRINT("The size of the send queue is %" PRIu32 " packets\n",get_queue_size(rcp_conn->sendBuffer));

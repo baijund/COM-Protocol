@@ -81,7 +81,7 @@ int main(int32_t argc, char **argv){
 
     DECORATE;
     DEBUG_PRINT("Extensive testing Send and Receive\n");
-    uint32_t buflen = RCP_MAX_PACKET_DATA_SIZE*100; //To send 10 packets
+    uint32_t buflen = RCP_MAX_PACKET_DATA_SIZE*10; //To send 10 packets
     simpleBuff = malloc(buflen);
     for(int i=0;i<buflen;i++){
         simpleBuff[i] = (char)i;

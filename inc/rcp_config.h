@@ -58,7 +58,7 @@
 #define RCP_STATE_SYN_SENT_TO_SEC 60
 #define RCP_STATE_SYN_SENT_TO_USEC 0
 
-#define RCP_SLIDING_WINDOW_LEN 10
+#define RCP_SLIDING_WINDOW_LEN 32
 #define RCP_SERVER_RETRIES 3
 
 //-----------------------------------------------

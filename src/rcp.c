@@ -444,7 +444,7 @@ RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, uint
     *bytesRead = 0;
     uint32_t origlen = len;
     while(len!=0){
-        if(rcp_conn->bytesInRecBuff != 0){
+        if(rcp_conn->bytesInRecBuff >= origlen){
             pthread_mutex_lock(&rcp_conn->receiveLock);
             while(rcp_conn->bytesInRecBuff > 0 && *bytesRead != origlen){
                 Packet *pack = queue_pop_tail(rcp_conn->receiveBuffer); //Now the packet memory is owned by the queue

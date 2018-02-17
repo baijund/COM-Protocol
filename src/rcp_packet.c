@@ -68,24 +68,21 @@ void deserializePacket(void *serialPacket, Packet *packet){
     buff+=1;
     memcpy(&(packet->ack), buff, sizeof(uint8_t));
     buff+=1;
-    // packet->syn = buff[0];
-    // packet->ack = buff[1];
-    // uint32_t *seqpos = (uint32_t *)(buff+2);
-    // packet->seq = ntohl(seqpos[0]);
+
     memcpy(&(packet->seq), buff, sizeof(uint32_t));
     packet->seq = ntohl(packet->seq);
     buff+=sizeof(uint32_t);
 
     // packet->dataSize = ntohl(seqpos[1]);
     memcpy(&(packet->dataSize), buff, sizeof(uint32_t));
-    buff+=sizeof(uint32_t);
     packet->dataSize = ntohl(packet->dataSize);
+    buff+=sizeof(uint32_t);
 
     packet->data = malloc(packet->dataSize); //Need space to hold data
     /*
     Copy over data after packet header
      */
-    memcpy(packet->data, buff, extractDataSize(packet));
+    memcpy(packet->data, buff, packet->dataSize);
 }
 
 inline uint8_t isAck(Packet *packet) {

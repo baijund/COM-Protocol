@@ -585,7 +585,9 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet, struct time
     }
 
     uint32_t *seqpos = (uint32_t *)(buff+2);
-    packet->dataSize = ntohl(seqpos[1]); //This is the amount of data that is in the packet.
+    uint32_t *dataSizepos = seqpos+1;
+    memcpy(&(packet->dataSize), dataSizepos, sizeof(uint32_t));
+    packet->dataSize = ntohl(packet->dataSize); //This is the amount of data that is in the packet.
 
     //Create a buffer long enough to hold the whole packet
     uint8_t *serialPacket = malloc(PACKET_SERIAL_SIZE(packet));
@@ -598,7 +600,20 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet, struct time
         DEBUG_PRINT("recvfrom returned %ld\n", recret);
         free(serialPacket);
         return recret;
+    } else if(recret != PACKET_SERIAL_SIZE(packet)){
+        DEBUG_PRINT("Did not receive the same size packet as requested.\n");
+        free(serialPacket);
+        return -999;
     }
+    // #if DEBUG
+    // DEBUG_PRINT("Before Deserialization, Packet Looks like: \n");
+    // DEBUG_PRINT("The packet serial size looks like: %lu\n",PACKET_SERIAL_SIZE(packet));
+    // DEBUG_PRINT("Does this make sense? I thought the data size was %" PRIu32 "\n", packet->dataSize);
+    // for(int i=0;i<PACKET_SERIAL_SIZE(packet);i++){
+    //     DEBUG_PRINT("0x%x ", serialPacket[i]);
+    // }
+    // DEBUG_PRINT("\n");
+    // #endif
     deserializePacket(serialPacket, packet);
     free(serialPacket); //No need for serialized packet when packet is created.
 

@@ -49,18 +49,18 @@ int main(int32_t argc, char **argv){
     // simple_open_bind_close_test(otherIP);
     // DEBUG_PRINT("Passed test\n");
     //
-    // #if DO_PACKET_STATS_TEST
-    // DECORATE;
-    // if(groundMode){
-    //     DEBUG_PRINT("Testing destination setup and send packets...\n");
-    //     DEBUG_PRINT("Let server test get to this point and hit enter.\n");
-    //     simple_send_packets_test(otherIP);
-    //     return 0;
-    // } else {
-    //     DEBUG_PRINT("Testing destination setup and receive packets...\n");
-    //     simple_receive_packets_test(otherIP);
-    // }
-    // #endif
+    #if DO_PACKET_STATS_TEST
+    DECORATE;
+    if(groundMode){
+        DEBUG_PRINT("Testing destination setup and send packets...\n");
+        DEBUG_PRINT("Let server test get to this point and hit enter.\n");
+        simple_send_packets_test(otherIP);
+        return 0;
+    } else {
+        DEBUG_PRINT("Testing destination setup and receive packets...\n");
+        simple_receive_packets_test(otherIP);
+    }
+    #endif
     //
     // DECORATE;
     // DEBUG_PRINT("Testing connect and listen.\n");
@@ -142,7 +142,7 @@ void simple_send_packets_test(char *otherIP){
         Packet *packet = createPacket(false, false, 0, contentLength, content);
         free(content); //No need for content after creating packet
         assert(rcp_send_packet(&rcp_conn, packet) == PACKET_SERIAL_SIZE(packet));
-        DEBUG_PRINT("Sent packet %d of %ld bytes and content %s\n", i, PACKET_SERIAL_SIZE(packet), packet->data);
+        DEBUG_PRINT("Sent packet %d of %ld bytes with dataSize %d bytes and content %s\n", i, PACKET_SERIAL_SIZE(packet), packet->dataSize, packet->data);
         destroyPacket(packet);
         usleep(uDelay); //Minimum delay between each packet send
     }
@@ -181,6 +181,11 @@ void simple_receive_packets_test(char *otherIP){
         }
         count++;
         DEBUG_PRINT("Received %d packets. This one with dataSize %d and content %s\n",count,packet.dataSize, packet.data);
+        // DEBUG_PRINT("Content Hex: \n");
+        // for(int i=0;i<packet.dataSize;i++){
+        //     DEBUG_PRINT("0x%x ", packet.data[i]);
+        // }
+        // DEBUG_PRINT("\n");
         destroyPacketData(&packet);
     }
     DECORATE;
@@ -257,11 +262,11 @@ void simple_send_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
     DEBUG_PRINT("Connect finished\n");
 
     DEBUG_PRINT("Sending %d bytes\n", len);
-    // DEBUG_PRINT("Attempting to send:\n");
-    // for(int i=0;i<len;i++){
-    //     DEBUG_PRINT("%c", simpleBuff[i]);
-    // }
-    // DEBUG_PRINT("\n");
+    DEBUG_PRINT("Attempting to send:\n");
+    for(int i=0;i<len;i++){
+        DEBUG_PRINT("%c", simpleBuff[i]);
+    }
+    DEBUG_PRINT("\n");
     rcp_send(&rcp_conn, simpleBuff, len);
     DEBUG_PRINT("Send Finished\n");
 
@@ -296,12 +301,12 @@ void simple_receive_test(char *otherIP, uint8_t *simpleBuff, uint32_t len){
     DEBUG_PRINT("Receive finished\n");
     // DEBUG_PRINT("Should have received:\n");
     // for(int i=0;i<len;i++){
-    //     DEBUG_PRINT("%c", simpleBuff[i]);
+    //     DEBUG_PRINT("0x%x ", simpleBuff[i]);
     // }
     // DEBUG_PRINT("\n");
     // DEBUG_PRINT("Received actually:\n");
     // for(int i=0;i<bytesRead;i++){
-    //     DEBUG_PRINT("%c", buf[i]);
+    //     DEBUG_PRINT("0x%x ", buf[i]);
     // }
     // DEBUG_PRINT("\nComparison:\n");
     // for(int i=0;i<bytesRead;i++){

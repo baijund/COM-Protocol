@@ -325,8 +325,12 @@ static void *rcp_establishedDaemon(void *conn){
                 DEBUG_PRINT("Sent %d packets\n", ableToSend);
                 Packet pack;
                 //Now wait for an ack
-                int32_t rec = rcp_receive_packet(rcp_conn, &pack, rcp_conn->timeouts.RCP_ESTABLISHED_SERVER_TO); //Wait at least as long as it takes for the server to acknowledge
+                struct timeval ackWaitTime;
+                timeradd(&rcp_conn->timeouts.RCP_ESTABLISHED_SERVER_TO, &rcp_conn->switchTime, &ackWaitTime);
+                DEBUG_PRINT("Will wait <%ld.%06ld> for ack\n",(long int)(ackWaitTime.tv_sec), (long int)(ackWaitTime.tv_usec));
+                int32_t rec = rcp_receive_packet(rcp_conn, &pack, ackWaitTime); //Wait at least as long as it takes for the server to acknowledge
                 if(rec<0){
+                    DEBUG_PRINT("Timeout waiting for ack (errno=%d). Will attempt to resend window.\n", errno);
                     continue; //Assume a timeout
                 }
                 uint32_t ackRecd = 0;
@@ -353,8 +357,11 @@ static void *rcp_establishedDaemon(void *conn){
             }
 
         } else {
+            if(get_queue_size(rcp_conn->sendBuffer)){
+                transitionState(rcp_conn, RCP_SOMETHING_TO_SEND);
+                continue;
+            }
             //This machine is in server mode
-            uint32_t serverRetries = 0;
             uint8_t serverTimeout = 0;
 
             uint32_t numReceivedPackets = 0;
@@ -372,12 +379,8 @@ static void *rcp_establishedDaemon(void *conn){
                     //Assume a timeout
                     DEBUG_PRINT("RCV timeout occured.\n");
                     destroyPacket(pack);
-                    if(serverRetries++ >= rcp_conn->serverRetries){
-                        serverTimeout = 1; //Timeout has happened. Now the machine should ack last packet and decide whether to switch to client mode
-                        DEBUG_PRINT("Server timeout\n");
-                        break;
-                    }
-                    DEBUG_PRINT("Server retries is %d\n", serverRetries);
+                    serverTimeout = 1;
+                    break;
                 } else if(extractSeq(pack) == (rcp_conn->ack+1)){
                     numReceivedPackets++;
                     pthread_mutex_lock(&rcp_conn->receiveLock);
@@ -392,12 +395,11 @@ static void *rcp_establishedDaemon(void *conn){
                 }
             }
             if(serverTimeout){
+                DEBUG_PRINT("Received less packets than window size.\n");
                 transitionState(rcp_conn, RCP_SERV_TO_AND_LESS_PACKS);
             } else {
+                DEBUG_PRINT("Received all packets possible in window.\n");
                 sendAck(rcp_conn);
-            }
-            if(get_queue_size(rcp_conn->sendBuffer)){
-                transitionState(rcp_conn, RCP_SOMETHING_TO_SEND);
             }
         }
     }
@@ -477,6 +479,8 @@ RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, uint
             sleep(0.01); //TODO: Fix to make this waste less power
         }
     }
+    //Send an ack after receive has completed.
+    sendAck(rcp_conn);
     return RCP_NO_ERROR;
 }
 
@@ -523,7 +527,7 @@ ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
     //Sleep until a packet can be sent
     struct timeval tv = timeRemainingToSend(rcp_conn);
     if(tv.tv_sec>=0){
-        printf("Sleeping for <%ld.%06ld>\n",(long int)(tv.tv_sec), (long int)(tv.tv_usec));
+        DEBUG_PRINT("Sleeping for <%ld.%06ld>\n",(long int)(tv.tv_sec), (long int)(tv.tv_usec));
         sleep(tv.tv_sec);
         usleep(tv.tv_usec);
     }

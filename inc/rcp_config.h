@@ -37,7 +37,15 @@
 //Can set timouts programatically.
 //If any timeout is set to 0, the state waits indefinetly.
 
-#define RCP_MAX_PACKET_DATA_SIZE 64 //Max packet length is 1kB
+#define TRANSMISSION_SPEED 9600.0 //bps
+#define PREAMBLE_LENGTH 24 //bits
+#define POSTAMBLE_LENGTH 14 //bits
+#define AX_25_AND_UDP_OVERHEAD (1+16+20+8)*8 //bits
+
+
+#define RCP_MAX_PACKET_DATA_SIZE 1024 //Max packet length (bytes)
+
+#define PACKET_TRANSMISSION_TIME (((RCP_MAX_PACKET_DATA_SIZE*8)+PREAMBLE_LENGTH+POSTAMBLE_LENGTH+AX_25_AND_UDP_OVERHEAD)/TRANSMISSION_SPEED)
 
 #define RCP_STATE_RCVD_SYN_TO_SEC 60 //(INTEGER) The state timeout in seconds
 #define RCP_STATE_RCVD_SYN_TO_USEC 0 //(INTEGER) The state timeout in microseconds

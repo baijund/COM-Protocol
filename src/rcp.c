@@ -60,7 +60,7 @@ static void sendAck(rcp_connection *rcp_conn){
     destroyPacket(ack);
 }
 
-#if COM_DEBUG
+#if RCP_DEBUG
 /**
  * Converts RCP_STATE to string representation
  * @param  s RCP_STATE
@@ -102,10 +102,10 @@ rcp_connection rcp_initConnection(){
     rcp_set_switch_time(&rcp_conn, RCP_SWITCH_US, RCP_SWITCH_SEC);
 
     if(pthread_mutex_init(&(rcp_conn.sendLock), NULL)){
-        COM_DEBUG_PRINT("Failed to initialize send mutex.\n");
+        RCP_DEBUG_PRINT("Failed to initialize send mutex.\n");
     }
     if(pthread_mutex_init(&(rcp_conn.receiveLock), NULL)){
-        COM_DEBUG_PRINT("Failed to initialize receive mutex.\n");
+        RCP_DEBUG_PRINT("Failed to initialize receive mutex.\n");
     }
     return rcp_conn;
 }
@@ -145,7 +145,7 @@ void rcp_setTimeouts(rcp_connection *rcp_conn, rcp_timeouts rcp_tos){
 
 
 int32_t rcp_socket(rcp_connection *rcp_conn){
-    COM_DEBUG_PRINT("Creating UDP socket.\n");
+    RCP_DEBUG_PRINT("Creating UDP socket.\n");
     rcp_conn->fd = (int32_t) socket(AF_INET, SOCK_DGRAM, 0);
     return rcp_conn->fd;
 }
@@ -156,14 +156,14 @@ int32_t rcp_bind(rcp_connection *rcp_conn, int32_t fd, rcp_sockaddr_in *rcp_sock
     myaddr.sin_family = AF_INET;
     myaddr.sin_addr.s_addr = htonl(INADDR_ANY); //Let OS decide which IP address this port is assigned to
     myaddr.sin_port = htons(port); //The port that the socket binds to
-    COM_DEBUG_PRINT("Binding socket at %x:%hu\n", ntohl(myaddr.sin_addr.s_addr),
+    RCP_DEBUG_PRINT("Binding socket at %x:%hu\n", ntohl(myaddr.sin_addr.s_addr),
      ntohs(myaddr.sin_port));
     int32_t b = bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr));
     if(b==0){
-        COM_DEBUG_PRINT("Successful bind\n");
+        RCP_DEBUG_PRINT("Successful bind\n");
         rcp_conn->this_addr = myaddr; //Copies over the address information over to the connection if successful bind
     } else{
-        COM_DEBUG_PRINT("Unsuccessful bind\n");
+        RCP_DEBUG_PRINT("Unsuccessful bind\n");
     }
     return b;
 }
@@ -181,13 +181,13 @@ RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port){
     /* look up the address of the server given its name */
     hp = gethostbyname(host);
     if (!hp) {
-        COM_DEBUG_PRINT("Could not obtain address of %s\n", host);
+        RCP_DEBUG_PRINT("Could not obtain address of %s\n", host);
     	return RCP_HOSTNAME_FAIL;
     }
     /* put the host's address into the server address structure */
     memcpy((void *)&destaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
     conn->dest_addr = destaddr;
-    COM_DEBUG_PRINT("Successfully filled in address for %s\n", host);
+    RCP_DEBUG_PRINT("Successfully filled in address for %s\n", host);
     conn->state = RCP_CLOSED; //Now connection can happen.
     return RCP_NO_ERROR;
 }
@@ -195,7 +195,7 @@ RCP_Error setupDest(rcp_connection *conn, const char *host, uint16_t port){
 RCP_Error rcp_connect(rcp_connection *rcp_conn){
 
     if(rcp_conn->state != RCP_CLOSED){
-        COM_DEBUG_PRINT("Can't start connect because connection isn't closed.\n");
+        RCP_DEBUG_PRINT("Can't start connect because connection isn't closed.\n");
         return RCP_NOT_CLOSED; //Can't start connect if not closed
     }
 
@@ -211,7 +211,7 @@ RCP_Error rcp_connect(rcp_connection *rcp_conn){
                 Packet synack; //To hold the synack
                 ssize_t rec = rcp_receive_packet(rcp_conn, &synack, rcp_conn->timeouts.RCP_SYN_SENT_TO);
                 if(rec<0){
-                    COM_DEBUG_PRINT("Some error during receiving synack: %d. Assuming TIMEOUT.\n", errno);
+                    RCP_DEBUG_PRINT("Some error during receiving synack: %d. Assuming TIMEOUT.\n", errno);
                     transitionState(rcp_conn, RCP_TIMEOUT);
                     break;
                 }else if(isSynAck(&synack)){
@@ -223,7 +223,7 @@ RCP_Error rcp_connect(rcp_connection *rcp_conn){
                 break;
             }
             default:{
-                COM_DEBUG_PRINT("Arrived at invalid state in connect");
+                RCP_DEBUG_PRINT("Arrived at invalid state in connect");
                 return RCP_INVALID_STATE;
             }
         }
@@ -239,7 +239,7 @@ RCP_Error rcp_connect(rcp_connection *rcp_conn){
 
 RCP_Error rcp_listen(rcp_connection *rcp_conn){
     if(rcp_conn->state != RCP_CLOSED){
-        COM_DEBUG_PRINT("Can't start connect because connection isn't closed.\n");
+        RCP_DEBUG_PRINT("Can't start connect because connection isn't closed.\n");
         return RCP_NOT_CLOSED; //Can't start connect if not closed
     }
 
@@ -257,7 +257,7 @@ RCP_Error rcp_listen(rcp_connection *rcp_conn){
                 tv.tv_usec = 0;
                 ssize_t rec = rcp_receive_packet(rcp_conn, &syn, tv);
                 if(rec<0){
-                    COM_DEBUG_PRINT("Some error during receiving syn: %d. Assuming TIMEOUT.,\n", errno);
+                    RCP_DEBUG_PRINT("Some error during receiving syn: %d. Assuming TIMEOUT.,\n", errno);
                     transitionState(rcp_conn, RCP_TIMEOUT);
                     break;
                 }
@@ -274,7 +274,7 @@ RCP_Error rcp_listen(rcp_connection *rcp_conn){
                 Packet ack; //To hold the ack
                 ssize_t rec = rcp_receive_packet(rcp_conn, &ack, rcp_conn->timeouts.RCP_RCVD_SYN_TO);
                 if(rec<0){
-                    COM_DEBUG_PRINT("Some error during receiving ack: %d. Assuming TIMEOUT\n", errno);
+                    RCP_DEBUG_PRINT("Some error during receiving ack: %d. Assuming TIMEOUT\n", errno);
                     transitionState(rcp_conn, RCP_TIMEOUT);
                     break;
                 }
@@ -287,7 +287,7 @@ RCP_Error rcp_listen(rcp_connection *rcp_conn){
                 break;
             }
             default:{
-                COM_DEBUG_PRINT("Arrived at invalid state in listen\n");
+                RCP_DEBUG_PRINT("Arrived at invalid state in listen\n");
                 return RCP_INVALID_STATE;
             }
         }
@@ -301,7 +301,7 @@ RCP_Error rcp_listen(rcp_connection *rcp_conn){
 
 static void *rcp_establishedDaemon(void *conn){
     rcp_connection *rcp_conn = (rcp_connection *)conn;
-    COM_DEBUG_PRINT("ESTABLISHED daemon spawned!\n");
+    RCP_DEBUG_PRINT("ESTABLISHED daemon spawned!\n");
 
 
     while(rcp_conn->established){
@@ -314,7 +314,7 @@ static void *rcp_establishedDaemon(void *conn){
                 QueueEntry *entry = rcp_conn->sendBuffer->tail; //Start at head of send buffer
                 for(uint32_t i = 0; i < ableToSend; i++){
                     if(entry == NULL){
-                        COM_DEBUG_PRINT("Entry is NULL!\n");
+                        RCP_DEBUG_PRINT("Entry is NULL!\n");
                     }
                     Packet *pack = entry->data;
                     // pack->seq = rcp_conn->seq+i;
@@ -322,31 +322,31 @@ static void *rcp_establishedDaemon(void *conn){
                     entry = entry->prev;
                 }
                 pthread_mutex_unlock(&rcp_conn->sendLock);
-                COM_DEBUG_PRINT("Sent %d packets\n", ableToSend);
+                RCP_DEBUG_PRINT("Sent %d packets\n", ableToSend);
                 Packet pack;
                 //Now wait for an ack
                 struct timeval ackWaitTime;
                 timeradd(&rcp_conn->timeouts.RCP_ESTABLISHED_SERVER_TO, &rcp_conn->switchTime, &ackWaitTime);
-                COM_DEBUG_PRINT("Will wait <%ld.%06ld> for ack\n",(long int)(ackWaitTime.tv_sec), (long int)(ackWaitTime.tv_usec));
+                RCP_DEBUG_PRINT("Will wait <%ld.%06ld> for ack\n",(long int)(ackWaitTime.tv_sec), (long int)(ackWaitTime.tv_usec));
                 int32_t rec = rcp_receive_packet(rcp_conn, &pack, ackWaitTime); //Wait at least as long as it takes for the server to acknowledge
                 if(rec<0){
-                    COM_DEBUG_PRINT("Timeout waiting for ack (errno=%d). Will attempt to resend window.\n", errno);
+                    RCP_DEBUG_PRINT("Timeout waiting for ack (errno=%d). Will attempt to resend window.\n", errno);
                     continue; //Assume a timeout
                 }
                 uint32_t ackRecd = 0;
                 if(isAck(&pack)){
                     ackRecd = extractSeq(&pack);
-                    COM_DEBUG_PRINT("Received ACK#%" PRIu32 "\n", ackRecd);
+                    RCP_DEBUG_PRINT("Received ACK#%" PRIu32 "\n", ackRecd);
                 } else{
-                    COM_DEBUG_PRINT("Received a non-ack packet while in client mode.\n");
+                    RCP_DEBUG_PRINT("Received a non-ack packet while in client mode.\n");
                     if(!rcp_conn->isGround){
-                        COM_DEBUG_PRINT("This machine is not ground, so giving other machine talking priority.\n");
+                        RCP_DEBUG_PRINT("This machine is not ground, so giving other machine talking priority.\n");
                         transitionState(rcp_conn, RCP_NOTHING_TO_SEND);
                     }
                 }
                 pthread_mutex_lock(&(rcp_conn->sendLock));
                 while(rcp_conn->sendBuffer->head && ackRecd>=extractSeq((Packet *)rcp_conn->sendBuffer->tail->data)){
-                    COM_DEBUG_PRINT("Popping tail with SEQ#%" PRIu32 "\n", extractSeq((Packet *)rcp_conn->sendBuffer->tail->data));
+                    RCP_DEBUG_PRINT("Popping tail with SEQ#%" PRIu32 "\n", extractSeq((Packet *)rcp_conn->sendBuffer->tail->data));
                     Packet *pack = queue_pop_tail(rcp_conn->sendBuffer);
                     destroyPacket(pack);
                 }
@@ -368,7 +368,7 @@ static void *rcp_establishedDaemon(void *conn){
             for(int i=0; i<rcp_conn->slidingWindowLen; i++){
                 if(!rcp_conn->established){
                     //Send a dying ack and finish.
-                    COM_DEBUG_PRINT("No longer established. Sending dying ack.\n");
+                    RCP_DEBUG_PRINT("No longer established. Sending dying ack.\n");
                     sendAck(rcp_conn);
                     return NULL; //End daemon if no longer established.
                 }
@@ -377,7 +377,7 @@ static void *rcp_establishedDaemon(void *conn){
 
                 if(rec<0){
                     //Assume a timeout
-                    COM_DEBUG_PRINT("RCV timeout occured.\n");
+                    RCP_DEBUG_PRINT("RCV timeout occured.\n");
                     destroyPacket(pack);
                     serverTimeout = 1;
                     break;
@@ -390,24 +390,24 @@ static void *rcp_establishedDaemon(void *conn){
                     pthread_mutex_unlock(&rcp_conn->receiveLock);
                 } else {
                     //Packet received is irrelevant if not data with expected sequence number.
-                    // COM_DEBUG_PRINT("Ignoring Received packet");
+                    // RCP_DEBUG_PRINT("Ignoring Received packet");
                     destroyPacket(pack);
                 }
             }
             if(serverTimeout){
-                COM_DEBUG_PRINT("Received less packets than window size.\n");
+                RCP_DEBUG_PRINT("Received less packets than window size.\n");
                 transitionState(rcp_conn, RCP_SERV_TO_AND_LESS_PACKS);
             } else {
-                COM_DEBUG_PRINT("Received all packets possible in window.\n");
+                RCP_DEBUG_PRINT("Received all packets possible in window.\n");
                 sendAck(rcp_conn);
             }
         }
     }
 
     //Send a dying ack and finish.
-    COM_DEBUG_PRINT("No longer established. Sending dying ack.\n");
+    RCP_DEBUG_PRINT("No longer established. Sending dying ack.\n");
     sendAck(rcp_conn);
-    COM_DEBUG_PRINT("ESTABLISHED daemon is dying.\n");
+    RCP_DEBUG_PRINT("ESTABLISHED daemon is dying.\n");
     return NULL;
 }
 
@@ -422,26 +422,26 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len){
     pthread_mutex_lock(&(rcp_conn->sendLock));
     while(templen != 0){
         uint32_t amountUsed = rcp_uint_min(rcp_conn->maxPacketDataSize, templen);
-        COM_DEBUG_PRINT("Adding packet with SEQ#%" PRIu32 " (0x%x) and size %" PRIu32 " to send queue\n", rcp_conn->seq, rcp_conn->seq, amountUsed);
+        RCP_DEBUG_PRINT("Adding packet with SEQ#%" PRIu32 " (0x%x) and size %" PRIu32 " to send queue\n", rcp_conn->seq, rcp_conn->seq, amountUsed);
 
         Packet *pack = createPacket(0, 0, rcp_conn->seq++, amountUsed, buf);
         queue_push_head(rcp_conn->sendBuffer, pack);
-        // COM_DEBUG_PRINT("Packet Contains: \n");
+        // RCP_DEBUG_PRINT("Packet Contains: \n");
         // for(int i=0;i<amountUsed;i++){
         //     printf("%c", pack->data[i]);
         // }
-        // COM_DEBUG_PRINT("\n");
+        // RCP_DEBUG_PRINT("\n");
         templen-=amountUsed;
         buf+=amountUsed;
     }
-    COM_DEBUG_PRINT("%d bytes added to send buffer.\n", len);
-    COM_DEBUG_PRINT("The size of the send queue is %" PRIu32 " packets\n",get_queue_size(rcp_conn->sendBuffer));
+    RCP_DEBUG_PRINT("%d bytes added to send buffer.\n", len);
+    RCP_DEBUG_PRINT("The size of the send queue is %" PRIu32 " packets\n",get_queue_size(rcp_conn->sendBuffer));
     pthread_mutex_unlock(&(rcp_conn->sendLock));
     while(!queue_is_empty(rcp_conn->sendBuffer)){
         sleep(1);
-        COM_DEBUG_PRINT("Send buffer not yet empty.\n");
+        RCP_DEBUG_PRINT("Send buffer not yet empty.\n");
     }
-    COM_DEBUG_PRINT("Send buffer has emptied.\n");
+    RCP_DEBUG_PRINT("Send buffer has emptied.\n");
     return RCP_NO_ERROR;
 }
 
@@ -471,8 +471,8 @@ RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, uint
                 }
                 rcp_conn->bytesInRecBuff -= toRead;
                 *bytesRead += toRead;
-                COM_DEBUG_PRINT("So far, received %" PRIu32 " bytes.\n", *bytesRead);
-                COM_DEBUG_PRINT("%" PRIu32 " bytes left to read\n", len);
+                RCP_DEBUG_PRINT("So far, received %" PRIu32 " bytes.\n", *bytesRead);
+                RCP_DEBUG_PRINT("%" PRIu32 " bytes left to read\n", len);
             }
             pthread_mutex_unlock(&rcp_conn->receiveLock);
         } else {
@@ -527,16 +527,16 @@ ssize_t rcp_send_packet(rcp_connection *rcp_conn, Packet *packet){
     //Sleep until a packet can be sent
     struct timeval tv = timeRemainingToSend(rcp_conn);
     if(tv.tv_sec>=0){
-        COM_DEBUG_PRINT("Sleeping for <%ld.%06ld>\n",(long int)(tv.tv_sec), (long int)(tv.tv_usec));
+        RCP_DEBUG_PRINT("Sleeping for <%ld.%06ld>\n",(long int)(tv.tv_sec), (long int)(tv.tv_usec));
         sleep(tv.tv_sec);
         usleep(tv.tv_usec);
     }
-    #if COM_DEBUG
-    COM_DEBUG_PRINT("Sending: "); //Print out packet header
+    #if RCP_DEBUG
+    RCP_DEBUG_PRINT("Sending: "); //Print out packet header
     for(int32_t i=0; i<PACKET_HEAD_SIZE; i++){
-        COM_DEBUG_PRINT("0x%x ", ((uint8_t *)buff)[i]);
+        RCP_DEBUG_PRINT("0x%x ", ((uint8_t *)buff)[i]);
     }
-    COM_DEBUG_PRINT("\n");
+    RCP_DEBUG_PRINT("\n");
     #endif
     //Send the data as a single UDP packet
     total = sendto(rcp_conn->fd, buff, PACKET_SERIAL_SIZE(packet), 0,
@@ -574,17 +574,17 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet, struct time
 
     if(recret<0){
         // int err = errno;
-        // COM_DEBUG_PRINT("errno is %d\n",err);
-        // COM_DEBUG_PRINT("recvfrom returned %ld\n", recret);
+        // RCP_DEBUG_PRINT("errno is %d\n",err);
+        // RCP_DEBUG_PRINT("recvfrom returned %ld\n", recret);
         return recret;
     } else if (recret>=PACKET_HEAD_SIZE){
         gettimeofday(&rcp_conn->lastReceivedTime, NULL);
-        #if COM_DEBUG
-        COM_DEBUG_PRINT("Received: "); //Print out packet header
+        #if RCP_DEBUG
+        RCP_DEBUG_PRINT("Received: "); //Print out packet header
         for(int32_t i=0; i<PACKET_HEAD_SIZE; i++){
-            COM_DEBUG_PRINT("0x%x ", ((uint8_t *)buff)[i]);
+            RCP_DEBUG_PRINT("0x%x ", ((uint8_t *)buff)[i]);
         }
-        COM_DEBUG_PRINT("\n");
+        RCP_DEBUG_PRINT("\n");
         #endif
     }
 
@@ -600,23 +600,23 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet, struct time
     recret = recvfrom(rcp_conn->fd, serialPacket, PACKET_SERIAL_SIZE(packet), 0, (struct sockaddr *)&remaddr, &addrlen);
     if(recret<0){
         int err = errno;
-        COM_DEBUG_PRINT("errno is %d\n",err);
-        COM_DEBUG_PRINT("recvfrom returned %ld\n", recret);
+        RCP_DEBUG_PRINT("errno is %d\n",err);
+        RCP_DEBUG_PRINT("recvfrom returned %ld\n", recret);
         free(serialPacket);
         return recret;
     } else if(recret != PACKET_SERIAL_SIZE(packet)){
-        COM_DEBUG_PRINT("Did not receive the same size packet as requested.\n");
+        RCP_DEBUG_PRINT("Did not receive the same size packet as requested.\n");
         free(serialPacket);
         return -999;
     }
-    // #if COM_DEBUG
-    // COM_DEBUG_PRINT("Before Deserialization, Packet Looks like: \n");
-    // COM_DEBUG_PRINT("The packet serial size looks like: %lu\n",PACKET_SERIAL_SIZE(packet));
-    // COM_DEBUG_PRINT("Does this make sense? I thought the data size was %" PRIu32 "\n", packet->dataSize);
+    // #if RCP_DEBUG
+    // RCP_DEBUG_PRINT("Before Deserialization, Packet Looks like: \n");
+    // RCP_DEBUG_PRINT("The packet serial size looks like: %lu\n",PACKET_SERIAL_SIZE(packet));
+    // RCP_DEBUG_PRINT("Does this make sense? I thought the data size was %" PRIu32 "\n", packet->dataSize);
     // for(int i=0;i<PACKET_SERIAL_SIZE(packet);i++){
-    //     COM_DEBUG_PRINT("0x%x ", serialPacket[i]);
+    //     RCP_DEBUG_PRINT("0x%x ", serialPacket[i]);
     // }
-    // COM_DEBUG_PRINT("\n");
+    // RCP_DEBUG_PRINT("\n");
     // #endif
     deserializePacket(serialPacket, packet);
     free(serialPacket); //No need for serialized packet when packet is created.
@@ -626,7 +626,7 @@ ssize_t rcp_receive_packet(rcp_connection *rcp_conn, Packet *packet, struct time
 
 
 
-#define INVALID_ACTION(rcp_conn, action) COM_DEBUG_PRINT("%s is an invalid action at %s\n", actionToStr(action), stateToStr(rcp_conn->state));
+#define INVALID_ACTION(rcp_conn, action) RCP_DEBUG_PRINT("%s is an invalid action at %s\n", actionToStr(action), stateToStr(rcp_conn->state));
 
 /**
  * Returns true if there is still time remaining to wait in the state. Or else false.
@@ -641,14 +641,14 @@ static uint8_t stateWithinTime(rcp_connection *rcp_conn, struct timeval timeout)
 
     struct timeval elapsed;
     timersub(&current, &start, &elapsed);
-    // COM_DEBUG_PRINT("%ld seconds elapsed. %ld usec elapsed.\n", (int64_t)elapsed.tv_sec, elapsed.tv_usec);
+    // RCP_DEBUG_PRINT("%ld seconds elapsed. %ld usec elapsed.\n", (int64_t)elapsed.tv_sec, elapsed.tv_usec);
 
     uint8_t ret = timercmp(&elapsed, &timeout, <);
 
     if(!ret){
-        COM_DEBUG_PRINT("State Timeout: Time elapsed is greater than %ld sec and %ld usec\n", timeout.tv_sec, timeout.tv_usec);
+        RCP_DEBUG_PRINT("State Timeout: Time elapsed is greater than %ld sec and %ld usec\n", timeout.tv_sec, timeout.tv_usec);
     } else {
-        COM_DEBUG_PRINT("No State Timeout: Time elapsed is less than %ld sec and %ld usec\n", timeout.tv_sec, timeout.tv_usec);
+        RCP_DEBUG_PRINT("No State Timeout: Time elapsed is less than %ld sec and %ld usec\n", timeout.tv_sec, timeout.tv_usec);
     }
     return ret;
 }
@@ -656,11 +656,11 @@ static uint8_t stateWithinTime(rcp_connection *rcp_conn, struct timeval timeout)
 static void adjustState(rcp_connection *rcp_conn, RCP_STATE state){
     rcp_conn->state = state;
     gettimeofday(&(rcp_conn->stateStartTime), NULL); //TODO address the assumption that this doesnt error.
-    COM_DEBUG_PRINT("Entered state %s at %ld seconds, and %ld microseconds.\n", stateToStr(rcp_conn->state), rcp_conn->stateStartTime.tv_sec, rcp_conn->stateStartTime.tv_usec);
+    RCP_DEBUG_PRINT("Entered state %s at %ld seconds, and %ld microseconds.\n", stateToStr(rcp_conn->state), rcp_conn->stateStartTime.tv_sec, rcp_conn->stateStartTime.tv_usec);
 }
 
 static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
-    COM_DEBUG_PRINT("Currently at %s and received input %s\n", stateToStr(rcp_conn->state), actionToStr(action));
+    RCP_DEBUG_PRINT("Currently at %s and received input %s\n", stateToStr(rcp_conn->state), actionToStr(action));
 
     RCP_ACTION executedAction = RCP_NO_ACTION;
     switch(rcp_conn->state){
@@ -809,11 +809,11 @@ static void transitionState(rcp_connection *rcp_conn, RCP_ACTION action){
         }
     }
 
-    COM_DEBUG_PRINT("Transitioned to %s and executed %s\n", stateToStr(rcp_conn->state), actionToStr(executedAction));
+    RCP_DEBUG_PRINT("Transitioned to %s and executed %s\n", stateToStr(rcp_conn->state), actionToStr(executedAction));
 
 }
 
-#if COM_DEBUG
+#if RCP_DEBUG
 
 static char *stateToStr(RCP_STATE s){
     switch(s){

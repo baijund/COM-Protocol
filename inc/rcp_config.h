@@ -6,17 +6,17 @@
 #include <stdbool.h>
 #include <sys/time.h> //For struct tv
 
-#ifndef COM_DEBUG
-#define COM_DEBUG 1 //Set this flag while debugging
+#ifndef RCP_DEBUG
+#define RCP_DEBUG 1 //Set this flag while debugging
 #endif
 
-#if COM_DEBUG
+#if RCP_DEBUG
 #include <stdio.h>
 
-#define COM_DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false ) //Only works on C99 compiler
+#define RCP_DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false ) //Only works on C99 compiler
 #else
-#define COM_DEBUG_PRINT(...) do{ } while ( false )
-#define NCOM_DEBUG 1 //This is for preventing asserts while debugging.
+#define RCP_DEBUG_PRINT(...) do{ } while ( false )
+#define NRCP_DEBUG 1 //This is for preventing asserts while debugging.
 #endif
 
 //----------------------------------------------

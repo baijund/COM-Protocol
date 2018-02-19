@@ -16,7 +16,7 @@
 #define RCP_DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false ) //Only works on C99 compiler
 #else
 #define RCP_DEBUG_PRINT(...) do{ } while ( false )
-#define NRCP_DEBUG 1 //This is for preventing asserts while debugging.
+#define NDEBUG 1 //This is for preventing asserts while debugging.
 #endif
 
 //----------------------------------------------

@@ -8,7 +8,7 @@
 
 int main() {
 
-    #if !DEBUG
+    #if !COM_DEBUG
     printf("Debug flag must be set to run tests in rcp_config.h\n");
     return -1;
     #endif
@@ -19,15 +19,15 @@ int main() {
     bool syn = isSyn(packet);
     //bool synack = isSynAck(packet);
     if (ack) {
-        DEBUG_PRINT("is ack\n");
+        COM_DEBUG_PRINT("is ack\n");
     }
     if (!syn) {
-        DEBUG_PRINT("isn't syn\n");
+        COM_DEBUG_PRINT("isn't syn\n");
     }
-    DEBUG_PRINT("dataSize is %i\n", extractDataSize(packet));
-    DEBUG_PRINT("seq num is %i\n", extractSeq(packet));
+    COM_DEBUG_PRINT("dataSize is %i\n", extractDataSize(packet));
+    COM_DEBUG_PRINT("seq num is %i\n", extractSeq(packet));
 
-    DEBUG_PRINT("This is a test\n");
+    COM_DEBUG_PRINT("This is a test\n");
 
     destroyPacket(packet);
     return 0;

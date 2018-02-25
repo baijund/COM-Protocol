@@ -381,7 +381,8 @@ static void *rcp_establishedDaemon(void *conn){
                     destroyPacket(pack);
                     serverTimeout = 1;
                     break;
-                } else if(extractSeq(pack) == (rcp_conn->ack+1)){
+                } else if(!isAck(pack) && !isSyn(pack) && (extractSeq(pack) == (rcp_conn->ack+1))) {
+                    RCP_DEBUG_PRINT("Received packet of correct sequence.\n");
                     numReceivedPackets++;
                     pthread_mutex_lock(&rcp_conn->receiveLock);
                     queue_push_head(rcp_conn->receiveBuffer, pack); //Now the packet memory is owned by the queue

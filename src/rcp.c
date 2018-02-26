@@ -449,7 +449,7 @@ RCP_Error rcp_send(rcp_connection *rcp_conn, uint8_t const *buf, uint32_t len){
 //TODO
 RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, uint32_t *bytesRead, struct timeval const to){
     while(!rcp_conn->established){
-        sleep(0.01); //TODO hacky. Fix later.
+        usleep(1000); //TODO hacky. Fix later.
     }
     *bytesRead = 0;
     uint32_t origlen = len;
@@ -477,7 +477,7 @@ RCP_Error rcp_receive(rcp_connection *rcp_conn, uint8_t *buf, uint32_t len, uint
             }
             pthread_mutex_unlock(&rcp_conn->receiveLock);
         } else {
-            sleep(0.01); //TODO: Fix to make this waste less power
+            usleep(1000); //TODO: Fix to make this waste less power
         }
     }
     //Send an ack after receive has completed.

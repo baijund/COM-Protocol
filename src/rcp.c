@@ -334,7 +334,7 @@ static void *rcp_establishedDaemon(void *conn){
                     continue; //Assume a timeout
                 }
                 uint32_t ackRecd = 0;
-                if(isAck(&pack)){
+                if(!isSyn(&pack) && isAck(&pack)){
                     ackRecd = extractSeq(&pack);
                     RCP_DEBUG_PRINT("Received ACK#%" PRIu32 "\n", ackRecd);
                 } else{

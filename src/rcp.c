@@ -337,7 +337,9 @@ static void *rcp_establishedDaemon(void *conn){
                 if(!isSyn(&pack) && isAck(&pack)){
                     ackRecd = extractSeq(&pack);
                     RCP_DEBUG_PRINT("Received ACK#%" PRIu32 "\n", ackRecd);
-                } else{
+                } else if(isSyn(&pack) && isAck(&pack)){
+                    sendAck(rcp_conn); //TODO hotfix for other end being in RCVD_SYN state still
+                }else{
                     RCP_DEBUG_PRINT("Received a non-ack packet while in client mode.\n");
                     if(!rcp_conn->isGround){
                         RCP_DEBUG_PRINT("This machine is not ground, so giving other machine talking priority.\n");

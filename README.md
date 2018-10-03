@@ -1,0 +1,1 @@
+This is a transport protocol built on top of UDP packets. It is being optimized to maintain communications between a satellite in low earth orbit and a ground station. See http://reconso.gatech.edu/ for more information on the project.
